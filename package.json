@@ -1,0 +1,31 @@
+{
+  "name": "boterbotjs",
+  "version": "1.0.0",
+  "description": "Discord bot for the Boterkluis",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "start": "node build/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sholtrop/boterbotjs.git"
+  },
+  "keywords": [
+    "bot",
+    "discord",
+    "boter"
+  ],
+  "author": "Sjors Holtrop",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sholtrop/boterbotjs/issues"
+  },
+  "homepage": "https://github.com/sholtrop/boterbotjs#readme",
+  "dependencies": {
+    "@typeit/discord": "^1.0.3",
+    "@types/node": "^13.1.7",
+    "discord.js": "^11.5.1"
+  }
+}
