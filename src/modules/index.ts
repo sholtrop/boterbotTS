@@ -1,4 +1,6 @@
 import { BotModule } from "../command";
-import Quote from "./quotes";
+import Quotes from "./quotes";
 
-export const allModules: BotModule[] = [Quote];
+export const allModules = (prefix: string) => {
+  return [new Quotes(prefix)];
+};
