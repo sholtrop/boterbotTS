@@ -35,6 +35,11 @@ export class BoterBot {
     this.prefix = config.prefix;
     this.client = new Discord.Client();
     for (const mod of config.modules) {
+      if (Object.keys(this.botMethods).includes(mod.name)) {
+        console.error(
+          `Error: BotModule ${mod.name} is shadowed by a Bot standard function`
+        );
+      }
       this.modules[mod.name] = mod;
     }
     console.log("Using modules:", Object.keys(this.modules));
@@ -50,14 +55,14 @@ export class BoterBot {
     return info;
   }
 
-  private onMessage(this: BoterBot, msg: Message) {
+  private async onMessage(this: BoterBot, msg: Message): Promise<void> {
     if (
       msg.author === this.client.user ||
       !msg.content.startsWith(this.prefix)
     ) {
       return;
     }
-    const [target, cmd] = this.parseCommand(msg);
+    const [target, cmd] = this.parseMessage(msg);
     let response: ModuleResponse;
     if (cmd === null) {
       response = `I don't know what \`${this.prefix + target}\` means. Try \`${
@@ -66,12 +71,12 @@ export class BoterBot {
     } else if (target === "self") {
       response = this.botMethods[cmd.method].call(this, cmd.args);
     } else {
-      response = this.modules[target].execute(cmd);
+      response = await this.modules[target].execute(cmd);
     }
     this.handleResponse(msg.channel, response);
   }
 
-  private parseCommand(this: BoterBot, msg: Message): [string, Command] {
+  private parseMessage(this: BoterBot, msg: Message): [string, Command] {
     let cmd: Command;
     let target: string;
     let message: Array<string> = msg.content
@@ -84,23 +89,32 @@ export class BoterBot {
     console.log("Received:", message);
     // Target is not a module method, but a bot default method, e.g. '!info'.
     if (message.length === 1 && this.botMethods[target]) {
+      console.log("self-module");
       target = "self";
       cmd = {
         method: message[0],
-        args: message.slice(2)
+        args: message.slice(2),
+        serverID: null,
+        requester: null
       };
     }
     // No such module
     else if (!Object.keys(this.modules).includes(message[0])) {
+      console.log("No such module");
       cmd = null;
     }
     // Successful command
     else {
+      console.log("Successful command");
       cmd = {
         method: message[1],
-        args: message.slice(2)
+        args: message.slice(2),
+        serverID: null,
+        requester: null
       };
     }
+    cmd.serverID = msg.guild;
+    cmd.requester = msg.author;
     return [target, cmd];
   }
 
@@ -117,6 +131,7 @@ export class BoterBot {
     channel: AnyTextChannel,
     response: ModuleResponse
   ): ModuleResponse {
+    console.log("handleResponse called");
     if (typeof response === "string") channel.send(response);
     return response;
   }

@@ -1,6 +1,10 @@
+import { Guild, User } from "discord.js";
+
 export interface Command {
   method: string;
   args: Array<string>;
+  serverID: Guild;
+  requester: User;
 }
 
 // More to follow
@@ -9,8 +13,13 @@ export type ModuleResponse = string;
 // [nameOfArg, optional?]
 export type HandlerParams = [string, boolean][];
 
+export type HandlerAction = (
+  user: User,
+  server: Guild,
+  ...args: string[]
+) => ModuleResponse | Promise<ModuleResponse>;
 export class ModuleHandler {
-  action: (...args: string[]) => ModuleResponse;
+  action: HandlerAction;
   params?: HandlerParams;
   description: string;
 }
@@ -56,7 +65,7 @@ export abstract class BotModule {
     return info + "```";
   }
 
-  public execute(cmd: Command): ModuleResponse {
+  public async execute(cmd: Command): Promise<ModuleResponse> {
     const allHandlers = Object.keys(this.handlers);
     if (cmd.method === "help") {
       if (cmd.args[0] && this.handlers[cmd.args[0]] === undefined) {
@@ -76,6 +85,10 @@ export abstract class BotModule {
       }
     }
     // Call relevant handler
-    return this.handlers[cmd.method].action(...cmd.args);
+    return await this.handlers[cmd.method].action(
+      cmd.requester,
+      cmd.serverID,
+      ...cmd.args
+    );
   }
 }
