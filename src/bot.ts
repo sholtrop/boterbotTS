@@ -6,7 +6,7 @@ import {
   GroupDMChannel
 } from "discord.js";
 import { Command, ModuleResponse, BotModule } from "./command";
-const Discord = require("discord.js");
+import * as Discord from "discord.js";
 
 type AnyTextChannel = TextChannel | DMChannel | GroupDMChannel;
 
@@ -42,7 +42,7 @@ export class BoterBot {
 
   private giveFullBotInfo(): string {
     let info = "**--------- BoterBot 2.0 TypeScript edition ---------**\n";
-    info += "The following commands are available:\n";
+    info += "Howdy, I'm the new Boterbot. This is what I can do:\n";
     for (let [k, mod] of Object.entries(this.modules)) {
       info += "`" + this.prefix + mod.name + "` | " + mod.info() + "\n";
     }
@@ -57,34 +57,51 @@ export class BoterBot {
     ) {
       return;
     }
+    const [target, cmd] = this.parseCommand(msg);
+    let response: ModuleResponse;
+    if (cmd === null) {
+      response = `I don't know what \`${this.prefix + target}\` means. Try \`${
+        this.prefix
+      }help\` to see what I can do.`;
+    } else if (target === "self") {
+      response = this.botMethods[cmd.method].call(this, cmd.args);
+    } else {
+      response = this.modules[target].execute(cmd);
+    }
+    this.handleResponse(msg.channel, response);
+  }
+
+  private parseCommand(this: BoterBot, msg: Message): [string, Command] {
+    let cmd: Command;
+    let target: string;
     let message: Array<string> = msg.content
       .trim()
       .substr(this.prefix.length)
       .toLowerCase()
       .split(" ");
     message = message.filter(val => val !== "");
-    const target = message[0];
+    target = message[0];
     console.log("Received:", message);
     // Target is not a module method, but a bot default method, e.g. '!info'.
     if (message.length === 1 && this.botMethods[target]) {
-      this.handleResponse(msg.channel, this.botMethods[target].call(this));
-      return;
+      target = "self";
+      cmd = {
+        method: message[0],
+        args: message.slice(2)
+      };
     }
-    if (!Object.keys(this.modules).includes(message[0])) {
-      this.handleResponse(
-        msg.channel,
-        `Unknown command \`${this.prefix + message[0]}\`. Try \`${
-          this.prefix
-        }help\``
-      );
-      return;
+    // No such module
+    else if (!Object.keys(this.modules).includes(message[0])) {
+      cmd = null;
     }
-    const cmd: Command = {
-      method: message[1],
-      args: message.slice(2)
-    };
-    const response = this.modules[target].execute(cmd);
-    this.handleResponse(msg.channel, response);
+    // Successful command
+    else {
+      cmd = {
+        method: message[1],
+        args: message.slice(2)
+      };
+    }
+    return [target, cmd];
   }
 
   public run(): void {
@@ -99,7 +116,8 @@ export class BoterBot {
   private handleResponse(
     channel: AnyTextChannel,
     response: ModuleResponse
-  ): void {
+  ): ModuleResponse {
     if (typeof response === "string") channel.send(response);
+    return response;
   }
 }

@@ -17,7 +17,7 @@ export class ModuleHandler {
 export abstract class BotModule {
   [index: string]: any;
   protected abstract _name: string;
-  get name(): string {
+  get name() {
     return this._name;
   }
   private readonly helpWidth = 42;
@@ -48,7 +48,8 @@ export abstract class BotModule {
     if (target) {
       return "```" + this.handlerToInfo(target) + "```";
     }
-    let info = "```\nEverything between <> is required, [] is optional.\n\n";
+    let info =
+      "```\nEverything between <> is required, [] is optional. Cool huh?\n\n";
     for (const cmd in this.handlers) {
       info += this.handlerToInfo(cmd) + "\n";
     }
@@ -56,17 +57,24 @@ export abstract class BotModule {
   }
 
   public execute(cmd: Command): ModuleResponse {
-    if (cmd.method === "help" || this.handlers[cmd.method] === undefined) {
-      if (
-        (this.handlers[cmd.method] === undefined && cmd.method !== "help") || // Non-existent method
-        (cmd.args[0] && this.handlers[cmd.args[0]] === undefined) // help arg is non-existent
-      ) {
+    const allHandlers = Object.keys(this.handlers);
+    if (cmd.method === "help") {
+      if (cmd.args[0] && this.handlers[cmd.args[0]] === undefined) {
+        // help arg is non-existent
         return `${this._name} has no functionality called \`${cmd.method}\`. Try \`${this.prefix}${this._name} help\``;
       }
       if (!cmd.args[0]) return this.help();
       return this.help(cmd.args[0]);
     }
-
+    if (cmd.method === undefined || !allHandlers.includes(cmd.method)) {
+      // See if it is a valid methodless call
+      if (allHandlers.includes("")) {
+        cmd.args.splice(0, 0, cmd.method);
+        cmd.method = "";
+      } else {
+        return ``;
+      }
+    }
     // Call relevant handler
     return this.handlers[cmd.method].action(...cmd.args);
   }
