@@ -82,7 +82,6 @@ export class BoterBot {
     let message: Array<string> = msg.content
       .trim()
       .substr(this.prefix.length)
-      .toLowerCase()
       .split(" ");
     message = message.filter(val => val !== "");
     target = message[0];

@@ -11,9 +11,10 @@ const UserQuoteSchema = createSchema(
 
 const QuoteStoreSchema = createSchema({
   serverID: Type.string({ required: true, unique: true }),
+  quoteHavers: Type.array({ default: [] }).of(Type.string({ unique: true })),
   quotes: Type.array({ default: [] }).of(UserQuoteSchema)
 });
 
 export const UserQuote = typedModel("UserQuote", UserQuoteSchema);
 export const QuoteStore = typedModel("QuoteStore", QuoteStoreSchema);
-export type QuoteStoreDoc = ExtractDoc<typeof QuoteStoreSchema>;
+export type UserQuoteDoc = ExtractDoc<typeof UserQuoteSchema>;

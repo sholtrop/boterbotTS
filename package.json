@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "start": "sudo service mongodb start && node build/index.js"
+    "start": "sudo service mongodb start && node build/index.js",
+    "dev": "sudo service mongodb start && nodemon"
   },
   "repository": {
     "type": "git",
@@ -25,11 +26,20 @@
   "homepage": "https://github.com/sholtrop/boterbotjs#readme",
   "dependencies": {
     "@typeit/discord": "^1.0.3",
+    "@types/moment": "^2.13.0",
     "@types/mongoose": "^5.5.41",
     "@types/node": "^13.1.7",
+    "auto-bind": "^4.0.0",
     "discord.js": "^11.5.1",
+    "moment": "^2.24.0",
     "mongoose": "^5.8.9",
     "node-opus": "^0.3.3",
+    "nodemon": "^2.0.2",
     "ts-mongoose": "0.0.21"
+  },
+  "devDependencies": {
+    "ts-node": "^8.6.2",
+    "ts-node-dev": "^1.0.0-pre.44",
+    "typescript": "^3.7.5"
   }
 }
