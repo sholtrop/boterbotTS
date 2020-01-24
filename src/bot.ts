@@ -3,7 +3,8 @@ import {
   Client,
   TextChannel,
   DMChannel,
-  GroupDMChannel
+  GroupDMChannel,
+  Util
 } from "discord.js";
 import { Command, ModuleResponse, BotModule } from "./command";
 import * as Discord from "discord.js";
@@ -17,7 +18,10 @@ export interface BotConfig {
   modules: Array<BotModule>;
 }
 
+export const client = new Discord.Client();
+
 export class BoterBot {
+  private readonly client: Client;
   private readonly botMethods: {
     [index: string]: (this: BoterBot) => string;
   } = {
@@ -26,14 +30,13 @@ export class BoterBot {
   };
   private readonly token: string;
   private readonly prefix: string;
-  private readonly client: Client;
   private modules: {
     [index: string]: BotModule;
   } = {};
   constructor(config: BotConfig) {
+    this.client = client;
     this.token = config.token;
     this.prefix = config.prefix;
-    this.client = new Discord.Client();
     for (const mod of config.modules) {
       if (Object.keys(this.botMethods).includes(mod.name)) {
         console.error(
@@ -49,7 +52,7 @@ export class BoterBot {
     let info = "**--------- BoterBot 2.0 TypeScript edition ---------**\n";
     info += "Howdy, I'm the new Boterbot. This is what I can do:\n";
     for (let [k, mod] of Object.entries(this.modules)) {
-      info += "`" + this.prefix + mod.name + "` | " + mod.info() + "\n";
+      info += "`" + this.prefix + mod.name + "` " + mod.info() + "\n";
     }
     info += "\nUse `!<command> help` to find out how to use them";
     return info;
@@ -79,7 +82,7 @@ export class BoterBot {
   private parseMessage(this: BoterBot, msg: Message): [string, Command] {
     let cmd: Command;
     let target: string;
-    let message: Array<string> = msg.content
+    let message: Array<string> = Util.escapeMarkdown(msg.content)
       .trim()
       .substr(this.prefix.length)
       .split(" ");
@@ -88,7 +91,6 @@ export class BoterBot {
     console.log("Received:", message);
     // Target is not a module method, but a bot default method, e.g. '!info'.
     if (message.length === 1 && this.botMethods[target]) {
-      console.log("self-module");
       target = "self";
       cmd = {
         method: message[0],
@@ -112,8 +114,10 @@ export class BoterBot {
         requester: null
       };
     }
-    cmd.serverID = msg.guild;
-    cmd.requester = msg.author;
+    if (cmd) {
+      cmd.serverID = msg.guild;
+      cmd.requester = msg.author;
+    }
     return [target, cmd];
   }
 

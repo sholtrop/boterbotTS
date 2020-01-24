@@ -1,4 +1,4 @@
-import { Guild, User } from "discord.js";
+import { Guild, User, Client } from "discord.js";
 
 export interface Command {
   method: string;
@@ -24,7 +24,7 @@ export class ModuleHandler {
   description: string;
 }
 export abstract class BotModule {
-  [index: string]: any;
+  protected abstract client: Client;
   protected abstract _name: string;
   get name() {
     return this._name;
@@ -32,6 +32,11 @@ export abstract class BotModule {
   private readonly helpWidth = 42;
   protected abstract readonly prefix: string;
   protected abstract handlers: { [index: string]: ModuleHandler };
+
+  protected async userIDtoName(this: BotModule, userid: string) {
+    const user = await this.client.fetchUser(userid);
+    return user.username;
+  }
   private handlerToInfo(cmd: string): string {
     let info = "";
     const handler = this.handlers[cmd];

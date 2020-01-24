@@ -4,7 +4,7 @@ const UserQuoteSchema = createSchema(
   {
     quote: Type.string({ required: true }),
     quotedPerson: Type.string({ required: true }),
-    addedBy: Type.string({ required: true })
+    addedByID: Type.string({ required: true })
   },
   { timestamps: { createdAt: true }, _id: false }
 );
