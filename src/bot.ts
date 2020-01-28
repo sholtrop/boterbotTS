@@ -6,7 +6,7 @@ import {
   GroupDMChannel,
   Util
 } from "discord.js";
-import { Command, ModuleResponse, BotModule } from "./command";
+import { Command, ModuleResponse, BotModule, ExecuteError } from "./command";
 import * as Discord from "discord.js";
 
 type AnyTextChannel = TextChannel | DMChannel | GroupDMChannel;
@@ -74,7 +74,13 @@ export class BoterBot {
     } else if (target === "self") {
       response = this.botMethods[cmd.method].call(this, cmd.args);
     } else {
-      response = await this.modules[target].execute(cmd);
+      try {
+        response = await this.modules[target].execute(cmd);
+      } catch (error) {
+        const err: ExecuteError = error;
+        response = err.messageToUser;
+        console.error(error);
+      }
     }
     this.handleResponse(msg.channel, response);
   }

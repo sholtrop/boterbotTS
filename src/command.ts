@@ -7,6 +7,10 @@ export interface Command {
   requester: User;
 }
 
+export interface ExecuteError {
+  messageToUser: string;
+}
+
 // More to follow
 export type ModuleResponse = string;
 
@@ -70,6 +74,21 @@ export abstract class BotModule {
     return info + "```";
   }
 
+  public verifyParams(cmd: Command): void {
+    console.log("Verifying parameters");
+    if (!this.handlers[cmd.method].params) return;
+    let idx = 0;
+    for (const param of this.handlers[cmd.method].params) {
+      console.log(param, cmd.args[idx]);
+      if (!param[1] && !cmd.args[idx]) {
+        throw {
+          messageToUser: `Missing required parameter \`${param[0]}\`. Try \`${this.prefix}${this._name} help\``
+        };
+      }
+      idx++;
+    }
+  }
+
   public async execute(cmd: Command): Promise<ModuleResponse> {
     const allHandlers = Object.keys(this.handlers);
     if (cmd.method === "help") {
@@ -86,9 +105,11 @@ export abstract class BotModule {
         cmd.args.splice(0, 0, cmd.method);
         cmd.method = "";
       } else {
-        return ``;
+        return `${this._name} has no functionality called \`${cmd.args[0]}\`. Try \`${this.prefix}${this._name} help\``;
       }
     }
+    // Verify whether required parameters are present
+    this.verifyParams(cmd);
     // Call relevant handler
     return await this.handlers[cmd.method].action(
       cmd.requester,

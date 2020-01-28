@@ -32,7 +32,7 @@
     "auto-bind": "^4.0.0",
     "discord.js": "^11.5.1",
     "moment": "^2.24.0",
-    "mongoose": "^5.8.9",
+    "mongoose": "^5.8.10",
     "node-opus": "^0.3.3",
     "nodemon": "^2.0.2",
     "ts-mongoose": "0.0.21",

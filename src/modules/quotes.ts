@@ -1,15 +1,13 @@
 import { BotModule, ModuleResponse, ModuleHandler } from "../command";
 import { User, Client } from "discord.js";
-import { QuoteStore } from "../database/schema";
+import {
+  QuoteStore,
+  QuoteStoreDoc,
+  UserQuote,
+  UserQuoteDoc
+} from "../database/schema";
 import { capitalize } from "../utils";
 import * as moment from "moment";
-
-interface UserQuote {
-  quote: string;
-  name?: string;
-  createdAt?: Date;
-  addedBy?: string;
-}
 
 class Quotes extends BotModule {
   protected handlers: { [index: string]: ModuleHandler } = {
@@ -18,8 +16,8 @@ class Quotes extends BotModule {
         return this.displayQuote(server.id, name, number);
       },
       params: [
-        ["name", false],
-        ["quote number", false]
+        ["name", true],
+        ["quote number", true]
       ],
       description:
         "Display a random quote, or display a random / the [number]th from [name]"
@@ -46,9 +44,20 @@ class Quotes extends BotModule {
         if (name) return this.displayAllQuotes(server.id, name);
         return this.displayNames(server.id);
       },
-      params: [["user", false]],
+      params: [["user", true]],
       description:
         "Display all users with quote count, or display all quotes of [user]"
+    },
+    delete: {
+      action: (user, server, name, number) => {
+        return this.deleteQuote(server.id, name, number);
+      },
+      params: [
+        ["name", true],
+        ["number", false]
+      ],
+      description:
+        "Delete all of <name>'s quotes, or only the [number]th quote."
     }
   };
   protected _name = "quote";
@@ -61,8 +70,12 @@ class Quotes extends BotModule {
     super();
   }
   private _dateFormat = "MMMM Do, Y";
-  private beautifyQuote(q: UserQuote, number?: number): string {
-    const { quote, name, createdAt, addedBy } = q;
+  private beautifyQuote(
+    name: string,
+    q: UserQuoteDoc,
+    number?: number
+  ): string {
+    const { quote, createdAt, addedBy } = q;
 
     let beautified = number ? `> ${number}. _${quote}_\n` : `> _${quote}_\n`;
     if (name)
@@ -80,18 +93,18 @@ class Quotes extends BotModule {
     name: string,
     quote: string
   ): Promise<ModuleResponse> {
-    if (!name) return "Missing <name>, try `!quote help new`";
-    if (!quote) return "Missing <quote>, try `!quote help new`";
     name = capitalize(name);
-    let qs = await QuoteStore.findOne({ serverID });
-    if (!qs) qs = await QuoteStore.create({ serverID });
-    if (name && !qs.quoteHavers.includes(name))
+    const qs = await this.getQuoteStore(serverID, true);
+    if (!this.nameInQuoteHavers(qs, name))
       return `${name} is not listed as a quoted person. Use \`!quote addname <name>\` to add them first`;
-    qs.quotes.push({
-      quote: quote,
-      quotedPerson: name,
-      addedByID: requester.id
-    });
+    const newQuotes = qs.quotes.get(name);
+    newQuotes.push(
+      new UserQuote({
+        quote,
+        addedBy: requester.id
+      }) as UserQuoteDoc
+    );
+    qs.quotes.set(name, newQuotes);
     await qs.save();
     return `Successfully added quote for ${name}`;
   }
@@ -100,9 +113,8 @@ class Quotes extends BotModule {
     name: string
   ): Promise<ModuleResponse> {
     name = capitalize(name);
-    let qs = await QuoteStore.findOne({ serverID });
-    if (!qs) qs = await QuoteStore.create({ serverID });
-    qs.quoteHavers.push(name);
+    let qs = await this.getQuoteStore(serverID, true);
+    qs.quotes.set(name, []);
     await qs.save();
     return `Successfully added ${name} to the list of quoted people`;
   }
@@ -113,104 +125,102 @@ class Quotes extends BotModule {
     number?: string
   ): Promise<ModuleResponse> {
     name = capitalize(name);
-    let quote: UserQuote;
-    let userQuotes: UserQuote[];
+    let quote: UserQuoteDoc;
+    let userQuotes: UserQuoteDoc[];
     let num: number;
     if (number) {
       num = parseInt(number, 10);
       if (isNaN(num)) return `${number} is not a valid number`;
+      if (num === 0)
+        return "Quote numbers start from 1 here, you programming nerd.";
     }
-    const qs = await QuoteStore.findOne({ serverID });
-    if (!qs) {
-      return "This server does not have any quotes yet";
-    }
-    if (name && !qs.quoteHavers.includes(name))
+    const qs = await this.getQuoteStore(serverID);
+    if (name && !this.nameInQuoteHavers(qs, name))
       return "This person is not registered yet. Add them with `!quote addname <name>`";
-    let toMatch: object;
-    if (name) toMatch = { "quotes.quotedPerson": name };
-    userQuotes = await QuoteStore.aggregate([
-      { $match: { toMatch, serverID } },
-      { $unwind: "$quotes" },
-      {
-        $project: {
-          _id: 0,
-          quote: "$quotes.quote",
-          name: "$quotes.quotedPerson",
-          createdAt: "$quotes.createdAt",
-          addedBy: "$quotes.addedByID"
-        }
-      }
-    ]).exec();
+    userQuotes = qs.quotes.get(name);
+    console.log(userQuotes);
     if (userQuotes.length === 0)
-      return "This server does not have any quotes yet";
-    if (name && number) quote = userQuotes[num];
-    else {
+      return "This user does not have any quotes yet";
+    if (name && num) {
+      quote = userQuotes[num - 1];
+      if (quote === undefined)
+        return `Quote with number ${number} does not exist yet.`;
+    } else {
       quote = userQuotes[Math.floor(Math.random() * userQuotes.length)];
     }
-    console.log(quote);
     if (quote.addedBy) quote.addedBy = await this.userIDtoName(quote.addedBy);
-    return this.beautifyQuote(quote);
+    return this.beautifyQuote(name, quote);
   }
   private async displayAllQuotes(serverID: string, name: string) {
     name = capitalize(name);
-    const qs = await QuoteStore.findOne({ serverID });
+    let msg = "";
+    const qs = await this.getQuoteStore(serverID);
     if (!qs) return "This server does not have any quotes yet";
-    if (!qs.quoteHavers.includes(name))
+    if (!this.nameInQuoteHavers(qs, name))
       return "This person is not registered yet. Add them with `!quote addname <name>`";
-    let allQuotes: {
-      quote: string;
-      name: string;
-    }[] = await QuoteStore.aggregate([
-      { $match: { serverID } },
-      { $unwind: "$quotes" },
-      {
-        $match: { "quotes.quotedPerson": name }
-      },
-      {
-        $project: {
-          _id: 0,
-          quote: "$quotes.quote"
-        }
-      }
-    ]).exec();
-    console.log(allQuotes);
-    if (allQuotes.length === 0) {
+    if (qs.quotes.get(name).length === 0) {
       return "This user does not have any quotes yet";
     }
-    let msg = "";
     let i: number;
+    let allQuotes = qs.quotes.get(name);
     for (i = 0; i < allQuotes.length - 1; i++) {
-      msg += this.beautifyQuote(allQuotes[i], i + 1);
+      msg += this.beautifyQuote(name, allQuotes[i], i + 1);
     }
     const lastQuote = allQuotes[i];
-    lastQuote.name = name;
-    msg += this.beautifyQuote(lastQuote, i + 1);
+    lastQuote.addedBy = null;
+    msg += this.beautifyQuote(name, lastQuote, i + 1);
     return msg;
   }
   private async displayNames(serverID: string) {
     let msg = "";
-    let qs = await QuoteStore.findOne({ serverID });
-    if (!qs) qs = await QuoteStore.create({ serverID });
-    if (qs.quoteHavers.length === 0)
+    let qs = await this.getQuoteStore(serverID, true);
+    if (!qs.quotes || Object.keys(qs.quotes).length === 0)
       return "No quoted people for this server yet. Add someone with `!quote addname <name>`";
-    let count = await QuoteStore.aggregate([
-      { $unwind: "$quotes" },
-      { $group: { _id: "$quotes.quotedPerson", count: { $sum: 1 } } }
-    ]).exec();
-    let temp: { [index: string]: number } = {};
-    for (const name of qs.quoteHavers) {
-      temp[name] = 0;
-    }
-    for (const grouping of count) {
-      if (Object.keys(temp).includes(grouping._id))
-        temp[grouping._id] = grouping.count;
-    }
-    for (const name of qs.quoteHavers) {
-      msg += `${name}: ${temp[name]} quote`;
-      if (temp[name] !== 1) msg += "s";
-      msg += "\n";
+    for (const [k, v] of qs.quotes.entries()) {
+      msg += `${k}: ${v.length} quote`;
+      if (v.length !== 1) msg += "s";
     }
     return msg;
+  }
+  private async deleteQuote(serverID: string, name: string, number?: string) {
+    name = capitalize(name);
+    let msg = "";
+    let num: number;
+    if (number) {
+      num = parseInt(number, 10);
+      if (isNaN(num)) return `${number} is not a valid number`;
+      if (num === 0)
+        return "Quote numbers start from 1 here, you programming nerd.";
+    }
+    console.log(serverID, name, number);
+    const qs = await this.getQuoteStore(serverID);
+    if (!this.nameInQuoteHavers(qs, name))
+      return "This person is not registered yet. Add them with `!quote addname <name>`";
+    if (num) {
+      qs.quotes.get(name).splice(num, 1);
+    } else {
+      qs.quotes.set(name, []);
+    }
+    await qs.save();
+    return msg;
+  }
+  private nameInQuoteHavers(qs: QuoteStoreDoc, name: string): boolean {
+    console.log(qs.quotes);
+    if (qs.quotes) return qs.quotes.has(name);
+    return false;
+  }
+  private async getQuoteStore(
+    serverID: string,
+    create = false
+  ): Promise<QuoteStoreDoc> {
+    let qs = await QuoteStore.findOne({ serverID });
+    if (!qs && create) {
+      qs = new QuoteStore({ serverID });
+      await qs.save();
+    } else if (!qs)
+      throw { messageToUser: "This server does not have any quotes yet" };
+    console.log(qs);
+    return qs as QuoteStoreDoc;
   }
 }
 export default Quotes;
