@@ -27,7 +27,7 @@ export const UserQuote = typedModel("UserQuote", UserQuoteSchema);
 export const QuoteStore = model("QuoteStore", QuoteStoreSchema);
 
 export type UserQuoteDoc = ExtractDoc<typeof UserQuoteSchema>;
-// Must be created manually (not through ts-mongoose) because it doesn't support [index: string]
+// Must be created manually (not through ts-mongoose) because it doesn't support Maps
 export interface QuoteStoreDoc extends Document {
   serverID: string;
   quotes: Map<string, Array<UserQuoteDoc>>;
