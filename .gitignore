@@ -3,3 +3,4 @@ build
 config.ts
 data/*
 !data/README.md
+*.env

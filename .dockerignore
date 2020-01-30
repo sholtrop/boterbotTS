@@ -1,0 +1,6 @@
+build
+node_modules
+LICENSE
+nodemon.json
+README.md
+.gitignore

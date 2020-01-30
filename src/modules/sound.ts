@@ -223,6 +223,7 @@ export class SoundByte extends SoundModule {
     msg += "```";
     return msg;
   }
+
   private async getSoundStore(
     serverID: string,
     create = false

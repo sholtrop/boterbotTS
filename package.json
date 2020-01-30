@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "start": "sudo service mongodb start && node build/index.js",
+    "start": "node build/index.js",
     "dev": "sudo service mongodb start && nodemon"
   },
   "repository": {
