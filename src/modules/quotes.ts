@@ -6,7 +6,7 @@ import {
   UserQuote,
   UserQuoteDoc
 } from "../database/schema";
-import { capitalize, randomChoice } from "../utils";
+import { capitalize } from "../utils";
 import * as moment from "moment";
 
 class Quotes extends BotModule {
@@ -75,7 +75,7 @@ class Quotes extends BotModule {
   constructor(protected prefix: string, protected client: Client) {
     super();
   }
-  private _dateFormat = "MMMM Do, Y";
+
   private beautifyQuote(
     name: string,
     q: UserQuoteDoc,
@@ -247,7 +247,6 @@ class Quotes extends BotModule {
       await qs.save();
     } else if (!qs)
       throw { messageToUser: "This server does not have any quotes yet" };
-    console.log(qs);
     return qs as QuoteStoreDoc;
   }
 }

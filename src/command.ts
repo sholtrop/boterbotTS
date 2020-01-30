@@ -33,7 +33,10 @@ export abstract class BotModule {
   get name() {
     return this._name;
   }
-  private readonly helpWidth = 42;
+  protected _dateFormat = "MMMM Do, Y";
+  // helpWidth has a minimum of 40, but is overwritten at startup if there is
+  // any handlerInfo string that exceeds 40 characters.
+  private helpWidth = 40;
   protected abstract readonly prefix: string;
   protected abstract handlers: { [index: string]: ModuleHandler };
 
@@ -41,23 +44,37 @@ export abstract class BotModule {
     const user = await this.client.fetchUser(userid);
     return user.username;
   }
-  private handlerToInfo(cmd: string): string {
+  private handlerToInfo(cmd: string, align = true): string {
     let info = "";
     const handler = this.handlers[cmd];
     let cmdInfo = this.prefix + this._name + " " + cmd;
     if (cmd !== "") cmdInfo += " ";
-    for (const arg of handler.params) {
-      // optional
-      if (arg[1]) cmdInfo += "[" + arg[0] + "]";
-      // required
-      else cmdInfo += "<" + arg[0] + ">";
-      cmdInfo += " ";
+    if (handler.params) {
+      for (const arg of handler.params) {
+        // optional
+        if (arg[1]) cmdInfo += "[" + arg[0] + "]";
+        // required
+        else cmdInfo += "<" + arg[0] + ">";
+        cmdInfo += " ";
+      }
     }
-    info +=
-      cmdInfo +
-      " ".repeat(this.helpWidth - cmdInfo.length) +
-      handler.description;
+    if (align)
+      info +=
+        cmdInfo +
+        " ".repeat(this.helpWidth - cmdInfo.length) +
+        handler.description;
+    else return cmdInfo;
     return info;
+  }
+
+  protected initializeHelpWidth(): void {
+    let maxLength = 0;
+    for (const handler in this.handlers) {
+      let info = this.handlerToInfo(handler, false);
+      if (info.length > maxLength) maxLength = info.length;
+    }
+    maxLength += 4;
+    if (maxLength > this.helpWidth) this.helpWidth = maxLength;
   }
 
   public abstract info(): string;
@@ -82,7 +99,9 @@ export abstract class BotModule {
       console.log(param, cmd.args[idx]);
       if (!param[1] && !cmd.args[idx]) {
         throw {
-          messageToUser: `Missing required parameter \`${param[0]}\`. Try \`${this.prefix}${this._name} help\``
+          messageToUser:
+            `Missing required parameter \`${param[0]}\`. Try \`${this.prefix}${this._name} help` +
+            (cmd.method === "" ? "`" : `${cmd.method}\``)
         };
       }
       idx++;

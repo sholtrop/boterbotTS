@@ -1,6 +1,13 @@
 import { Schema, model, Document } from "mongoose";
-import { createSchema, typedModel, ExtractDoc, Type } from "ts-mongoose";
+import {
+  createSchema,
+  typedModel,
+  ExtractDoc,
+  Type,
+  ExtractProps
+} from "ts-mongoose";
 
+// USER QUOTES
 const UserQuoteSchema = createSchema(
   {
     quote: Type.string({ required: true }),
@@ -27,8 +34,32 @@ export const UserQuote = typedModel("UserQuote", UserQuoteSchema);
 export const QuoteStore = model("QuoteStore", QuoteStoreSchema);
 
 export type UserQuoteDoc = ExtractDoc<typeof UserQuoteSchema>;
+export type UserQuoteProps = ExtractProps<typeof UserQuoteSchema>;
 // Must be created manually (not through ts-mongoose) because it doesn't support Maps
 export interface QuoteStoreDoc extends Document {
   serverID: string;
   quotes: Map<string, Array<UserQuoteDoc>>;
 }
+
+// PLAYABLE SOUNDS
+const PlayableSoundSchema = createSchema(
+  {
+    name: Type.string({ required: true, unique: true }),
+    link: Type.string({ required: true }),
+    volume: Type.number({ default: 30, min: 1, max: 100 }),
+    start: Type.number({ required: true }),
+    end: Type.number({ required: true }),
+    addedBy: Type.string({ required: true }),
+    played: Type.number({ default: 0, validate: Number.isInteger })
+  },
+  { timestamps: { createdAt: true }, _id: false }
+);
+export const PlayableSound = typedModel("PlayableSound", PlayableSoundSchema);
+export type PlayableSoundDoc = ExtractDoc<typeof PlayableSoundSchema>;
+const SoundStoreSchema = createSchema({
+  serverID: Type.string({ required: true }),
+  sounds: Type.array({ default: [] }).of(PlayableSoundSchema)
+});
+export const SoundStore = typedModel("SoundStore", SoundStoreSchema);
+export type SoundStoreDoc = ExtractDoc<typeof SoundStoreSchema>;
+export type PlayableSoundProps = ExtractProps<typeof PlayableSoundSchema>;
