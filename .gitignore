@@ -5,3 +5,4 @@ data/*
 !data/README.md
 *.env
 log.txt
+.vscode
