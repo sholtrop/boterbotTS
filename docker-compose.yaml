@@ -1,0 +1,22 @@
+version: "3"
+services:
+  bot:
+    build: .
+    environment:
+      WAIT_HOSTS: database:27017 # Wait for mongodb to actually start
+    env_file:
+      - "bot.env"
+    restart: always
+    depends_on:
+      - database
+    ports:
+      - 7001:7001
+  database:
+    image: mongo
+    restart: always
+    env_file:
+      - "db.env"
+    volumes:
+      - mongo-data:/var/lib/mongodb
+volumes:
+  mongo-data:
