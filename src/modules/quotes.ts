@@ -194,11 +194,12 @@ class Quotes extends BotModule {
   private async displayNames(serverID: string) {
     let msg = "";
     let qs = await this.getQuoteStore(serverID, true);
-    if (!qs.quotes || Object.keys(qs.quotes).length === 0)
+    if (!qs.quotes || qs.quotes.size === 0)
       return "No quoted people for this server yet. Add someone with `!quote addname <name>`";
     for (const [k, v] of qs.quotes.entries()) {
       msg += `${k}: ${v.length} quote`;
       if (v.length !== 1) msg += "s";
+      msg += "\n";
     }
     return msg;
   }
