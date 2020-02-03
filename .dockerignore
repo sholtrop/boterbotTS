@@ -4,3 +4,5 @@ LICENSE
 nodemon.json
 README.md
 .gitignore
+*.env
+.vscode

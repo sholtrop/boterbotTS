@@ -1,4 +1,4 @@
-FROM arm32v7/node:13.5.0
+FROM node:13.5.0
 WORKDIR /usr/src/app
 COPY package.json .
 RUN ["npm", "install"]

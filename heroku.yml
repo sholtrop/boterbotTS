@@ -1,0 +1,7 @@
+build:
+  addons:
+    - plan: mongolab
+  docker:
+    bot: Dockerfile
+run:
+  bot: npm start
