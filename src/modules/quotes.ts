@@ -206,6 +206,7 @@ class Quotes extends BotModule {
   private async deleteQuote(serverID: string, name: string, number?: string) {
     name = capitalize(name);
     let num: number;
+    let msg: string;
     if (number) {
       num = parseInt(number, 10);
       if (isNaN(num)) return `${number} is not a valid number`;
@@ -217,12 +218,14 @@ class Quotes extends BotModule {
     if (!this.nameInQuoteHavers(qs, name))
       return "This person is not registered yet. Add them with `!quote addname <name>`";
     if (num) {
-      qs.quotes.get(name).splice(num, 1);
+      qs.quotes.set(name, qs.quotes.get(name).splice(num, 1));
+      msg = `Successfully deleted quote #${num} of ${name}`;
     } else {
       qs.quotes.set(name, []);
+      msg = `Successfully deleted all of ${name}'s quotes`;
     }
     await qs.save();
-    return `Successfully deleted all of ${name}'s quotes`;
+    return msg;
   }
   private async removeName(serverID: string, name: string) {
     name = capitalize(name);
