@@ -30,10 +30,10 @@ npm run dev
 
 ## Deploying
 
-# Heroku
+### Heroku
 I personally use a Docker image in combination wit heroku. A `heroku.yml` file is included for this purpose. Set up a Heroku account, and follow the instructions [here](https://devcenter.heroku.com/articles/build-docker-images-heroku-yml).
 
-# Docker-compose
+### Docker-compose
 You will need to add two files:
 - db.env with
 
