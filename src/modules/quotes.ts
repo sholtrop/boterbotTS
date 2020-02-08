@@ -1,4 +1,4 @@
-import { BotModule, ModuleResponse, ModuleHandler } from "../command";
+import { BotModule, ModuleHandler } from "../command";
 import { User, Client } from "discord.js";
 import {
   QuoteStore,
@@ -16,8 +16,8 @@ class Quotes extends BotModule {
         return this.displayQuote(server.id, name, number);
       },
       params: [
-        ["name", true],
-        ["quote number", true]
+        { name: "name", optional: true },
+        { name: "quote number", optional: true }
       ],
       description:
         "Display a random quote, or display a random / the [number]th from [name]"
@@ -27,8 +27,8 @@ class Quotes extends BotModule {
         return this.addQuote(user, server.id, args[0], args.slice(1).join(" "));
       },
       params: [
-        ["name", false],
-        ["quote", false]
+        { name: "name", optional: false },
+        { name: "quote", optional: false }
       ],
       description: "Adds <quote> to <name> as a quote"
     },
@@ -36,7 +36,7 @@ class Quotes extends BotModule {
       action: (user, server, name) => {
         return this.addName(server.id, name);
       },
-      params: [["name", false]],
+      params: [{ name: "name", optional: false }],
       description: "Adds <name> to the list of quote-havers"
     },
     removename: {
@@ -44,14 +44,14 @@ class Quotes extends BotModule {
         return this.removeName(server.id, name);
       },
       description: "Removes <name> from the list of quoted people",
-      params: [["name", false]]
+      params: [{ name: "name", optional: false }]
     },
     all: {
       action: (user, server, name) => {
         if (name) return this.displayAllQuotes(server.id, name);
         return this.displayNames(server.id);
       },
-      params: [["user", true]],
+      params: [{ name: "user", optional: true }],
       description:
         "Display all users with quote count, or display all quotes of [user]"
     },
@@ -60,8 +60,8 @@ class Quotes extends BotModule {
         return this.deleteQuote(server.id, name, number);
       },
       params: [
-        ["name", false],
-        ["number", true]
+        { name: "name", optional: false },
+        { name: "number", optional: true }
       ],
       description: "Delete all of <name>'s quotes, or only the [number]th quote"
     }
@@ -98,7 +98,7 @@ class Quotes extends BotModule {
     serverID: string,
     name: string,
     quote: string
-  ): Promise<ModuleResponse> {
+  ): Promise<string> {
     name = capitalize(name);
     const qs = await this.getQuoteStore(serverID, true);
     if (!this.nameInQuoteHavers(qs, name))
@@ -115,10 +115,7 @@ class Quotes extends BotModule {
     await qs.save();
     return `Successfully added quote for ${name}`;
   }
-  private async addName(
-    serverID: string,
-    name: string
-  ): Promise<ModuleResponse> {
+  private async addName(serverID: string, name: string): Promise<string> {
     name = capitalize(name);
     let qs = await this.getQuoteStore(serverID, true);
     qs.quotes.set(name, []);
@@ -130,7 +127,7 @@ class Quotes extends BotModule {
     serverID: string,
     name?: string,
     number?: string
-  ): Promise<ModuleResponse> {
+  ): Promise<string> {
     name = capitalize(name);
     let quoteChoice: UserQuoteDoc;
     let userQuotes: UserQuoteDoc[];

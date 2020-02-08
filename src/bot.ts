@@ -1,22 +1,10 @@
-import {
-  Message,
-  Client,
-  TextChannel,
-  DMChannel,
-  GroupDMChannel,
-  Util
-} from "discord.js";
-import { Command, ModuleResponse, BotModule, ExecuteError } from "./command";
+import { Message, Client, Util } from "discord.js";
+import { AnyTextChannel, BotConfig, ExecuteError, Command } from "./types";
+import { SoundPlayer, Sound } from "./soundPlayer";
+import { BotModule } from "./command";
 import * as Discord from "discord.js";
 
-type AnyTextChannel = TextChannel | DMChannel | GroupDMChannel;
-
 // Make a file called config.ts that implements and exports this config
-export interface BotConfig {
-  token: string;
-  prefix: string;
-  modules: Array<BotModule>;
-}
 
 export const client = new Discord.Client();
 
@@ -26,8 +14,17 @@ export class BoterBot {
     [index: string]: (this: BoterBot) => string;
   } = {
     info: this.giveFullBotInfo,
-    help: this.giveFullBotInfo
+    help: this.giveFullBotInfo,
+    stop: () => {
+      this.player.stop();
+      return "Stopped";
+    },
+    skip: () => {
+      this.player.skip();
+      return "Skipped";
+    }
   };
+  private readonly player: SoundPlayer;
   private readonly token: string;
   private readonly prefix: string;
   private modules: {
@@ -37,11 +34,13 @@ export class BoterBot {
     this.client = client;
     this.token = config.token;
     this.prefix = config.prefix;
+    this.player = new SoundPlayer();
     for (const mod of config.modules) {
       if (Object.keys(this.botMethods).includes(mod.name)) {
         console.error(
           `Error: BotModule ${mod.name} is shadowed by a Bot standard function`
         );
+        process.exit(-1);
       }
       this.modules[mod.name] = mod;
     }
@@ -66,7 +65,7 @@ export class BoterBot {
       return;
     }
     const [target, cmd] = this.parseMessage(msg);
-    let response: ModuleResponse;
+    let response: string;
     if (cmd === null) {
       response = `I don't know what \`${this.prefix + target}\` means. Try \`${
         this.prefix
@@ -127,6 +126,11 @@ export class BoterBot {
     return [target, cmd];
   }
 
+  private handleResponse(channel: AnyTextChannel, response: string): string {
+    if (response !== null) channel.send(response);
+    return response;
+  }
+
   public run(): void {
     this.client.on("ready", () => {
       console.log(`------ Logged in as ${this.client.user.username} ------`);
@@ -134,14 +138,5 @@ export class BoterBot {
 
     this.client.on("message", (msg: Message) => this.onMessage(msg));
     this.client.login(this.token).catch(e => console.error(e));
-  }
-
-  private handleResponse(
-    channel: AnyTextChannel,
-    response: ModuleResponse
-  ): ModuleResponse {
-    console.log("handleResponse called");
-    if (typeof response === "string") channel.send(response);
-    return response;
   }
 }

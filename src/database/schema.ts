@@ -42,7 +42,7 @@ export interface QuoteStoreDoc extends Document {
 }
 
 // PLAYABLE SOUNDS
-const PlayableSoundSchema = createSchema(
+const YoutubeSoundSchema = createSchema(
   {
     name: Type.string({ required: true, unique: true }),
     link: Type.string({ required: true }),
@@ -54,12 +54,12 @@ const PlayableSoundSchema = createSchema(
   },
   { timestamps: { createdAt: true }, _id: false }
 );
-export const PlayableSound = typedModel("PlayableSound", PlayableSoundSchema);
-export type PlayableSoundDoc = ExtractDoc<typeof PlayableSoundSchema>;
+export const PlayableSound = typedModel("PlayableSound", YoutubeSoundSchema);
+export type YoutubeSoundDoc = ExtractDoc<typeof YoutubeSoundSchema>;
 const SoundStoreSchema = createSchema({
   serverID: Type.string({ required: true }),
-  sounds: Type.array({ default: [] }).of(PlayableSoundSchema)
+  sounds: Type.array({ default: [] }).of(YoutubeSoundSchema)
 });
 export const SoundStore = typedModel("SoundStore", SoundStoreSchema);
 export type SoundStoreDoc = ExtractDoc<typeof SoundStoreSchema>;
-export type PlayableSoundProps = ExtractProps<typeof PlayableSoundSchema>;
+export type YoutubeSoundProps = ExtractProps<typeof YoutubeSoundSchema>;

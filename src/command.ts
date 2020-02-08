@@ -1,34 +1,14 @@
-import { Guild, User, Client } from "discord.js";
+import { Client } from "discord.js";
+import { SoundPlayer } from "./soundPlayer";
+import { HandlerAction, HandlerParams, Command } from "./types";
 
-export interface Command {
-  method: string;
-  args: Array<string>;
-  serverID: Guild;
-  requester: User;
-}
-
-export interface ExecuteError {
-  messageToUser: string;
-}
-
-// More to follow
-export type ModuleResponse = string;
-
-// [nameOfArg, optional?]
-export type HandlerParams = [string, boolean][];
-
-export type HandlerAction = (
-  user: User,
-  server: Guild,
-  ...args: string[]
-) => ModuleResponse | Promise<ModuleResponse>;
 export class ModuleHandler {
   action: HandlerAction;
   params?: HandlerParams;
   description: string;
 }
 export abstract class BotModule {
-  protected abstract client: Client;
+  protected client: Client;
   protected abstract _name: string;
   get name() {
     return this._name;
@@ -52,9 +32,9 @@ export abstract class BotModule {
     if (handler.params) {
       for (const arg of handler.params) {
         // optional
-        if (arg[1]) cmdInfo += "[" + arg[0] + "]";
+        if (arg.optional) cmdInfo += "[" + arg.name + "]";
         // required
-        else cmdInfo += "<" + arg[0] + ">";
+        else cmdInfo += "<" + arg.name + ">";
         cmdInfo += " ";
       }
     }
@@ -97,10 +77,10 @@ export abstract class BotModule {
     let idx = 0;
     for (const param of this.handlers[cmd.method].params) {
       console.log(param, cmd.args[idx]);
-      if (!param[1] && !cmd.args[idx]) {
+      if (!param.optional && !cmd.args[idx]) {
         throw {
           messageToUser:
-            `Missing required parameter \`${param[0]}\`. Try \`${this.prefix}${this._name} help` +
+            `Missing required parameter \`${param.name}\`. Try \`${this.prefix}${this._name} help` +
             (cmd.method === "" ? "`" : `${cmd.method}\``)
         };
       }
@@ -108,7 +88,7 @@ export abstract class BotModule {
     }
   }
 
-  public async execute(cmd: Command): Promise<ModuleResponse> {
+  public async execute(cmd: Command): Promise<string> {
     const allHandlers = Object.keys(this.handlers);
     if (cmd.method === "help") {
       if (cmd.args[0] && this.handlers[cmd.args[0]] === undefined) {

@@ -1,4 +1,4 @@
-import { BotConfig } from "./bot";
+import { BotConfig } from "./types";
 import { allModules } from "./modules";
 const PREFIX = "!";
 

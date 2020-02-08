@@ -1,32 +1,40 @@
 import { ModuleHandler } from "../command";
-import { SoundModule } from "./_soundModule";
-import { Client } from "discord.js";
+import { Sound, SoundPlayer } from "../soundPlayer";
+import { BotModule } from "../command";
+import { Client, GuildMember } from "discord.js";
 import {
   SoundStore,
   SoundStoreDoc,
   PlayableSound,
-  PlayableSoundProps,
-  PlayableSoundDoc
+  YoutubeSoundProps
 } from "../database/schema";
 import * as ytdl from "ytdl-core";
 import { hmsToSeconds } from "../utils";
 import moment = require("moment");
 
-export class SoundByte extends SoundModule {
+export class SoundByte extends BotModule {
+  private player = new SoundPlayer();
   protected handlers: { [index: string]: ModuleHandler } = {
     "": {
       action: async (user, server, soundName) => {
+        const channel = (await server.fetchMember(user)).voiceChannel;
         const s = await this.fetchSound(server.id, soundName);
         if (s === null) return `Sound with ${soundName} does not exist`;
-        await this.playSound(user.lastMessage.member.voiceChannel, s);
+        if (channel === undefined) {
+          await user.dmChannel.sendMessage(
+            "Pssh, you need to be in a voice channel"
+          );
+          return null;
+        }
+        this.player.playSound(s, channel);
         await this.incrementPlayed(server.id, soundName);
         return null;
       },
       description:
         "Play the sound called <name>, optionally overwriting its volume with [volume]",
       params: [
-        ["name", false],
-        ["volume", true]
+        { name: "name", optional: false },
+        { name: "volume", optional: true }
       ]
     },
     new: {
@@ -44,11 +52,11 @@ export class SoundByte extends SoundModule {
       description:
         "Add soundclip from <start> to <end> of the video in <link>. Giving it <name> as a name, and optionally a [volume] from 1-100.",
       params: [
-        ["link", false],
-        ["start", false],
-        ["end", false],
-        ["name", false],
-        ["volume", true]
+        { name: "link", optional: false },
+        { name: "start", optional: false },
+        { name: "end", optional: false },
+        { name: "name", optional: false },
+        { name: "volume", optional: true }
       ]
     },
     delete: {
@@ -56,7 +64,7 @@ export class SoundByte extends SoundModule {
         return this.removeSound(server.id, soundName);
       },
       description: "Remove soundclip with <name> from the list",
-      params: [["name", false]]
+      params: [{ name: "name", optional: false }]
     },
     list: {
       action: (user, server) => {
@@ -71,10 +79,29 @@ export class SoundByte extends SoundModule {
       },
       description:
         "View statistics about the soundbytes of this server, optionally of the [top] amount of most-played soundbytes",
-      params: [["top", true]]
+      params: [{ name: "top", optional: true }]
+    },
+    stop: {
+      action: (user, server) => {
+        this.player.stop();
+        return null;
+      },
+      description:
+        "Stop the sound that's currently playing and empty the queue",
+      params: null
+    },
+    skip: {
+      action: (user, server) => {
+        this.player.skip();
+        return null;
+      },
+      description:
+        "Skip the sound that's currently playing, instantly playing the next one if there is a queue",
+      params: null
     }
   };
   protected _name = "sound";
+
   public info(): string {
     return "Add soundbytes from YouTube clips and play them";
   }
@@ -91,6 +118,14 @@ export class SoundByte extends SoundModule {
     end: string,
     volume?: string
   ) {
+    const namePattern = /^[a-zA-Z0-9_.-]*$/;
+    const maxLength = 18;
+    if (!namePattern.test(name))
+      return `Invalid soundclip name ${name}. May only contain letters and numbers.`;
+    if (name.length > maxLength)
+      return `${name} is too long a name. Choose something below ${maxLength} characters.`;
+    if (Object.keys(this.handlers).includes(name))
+      return `${name} is already the name of a command, choose a different one.`;
     if (!ytdl.validateURL(link)) return `${link} is not a valid YouTube URL`;
     name = name.toLowerCase();
     let startNum = hmsToSeconds(start);
@@ -109,7 +144,7 @@ export class SoundByte extends SoundModule {
     const ss = await this.getSoundStore(serverID, true);
     if (ss.sounds.some(clip => clip.name === name))
       return `Sound with name ${name} already exists`;
-    const ps: PlayableSoundProps = {
+    const ps: YoutubeSoundProps = {
       __v: 0,
       name,
       link,
@@ -127,10 +162,10 @@ export class SoundByte extends SoundModule {
   private async fetchSound(
     serverID: string,
     soundName: string
-  ): Promise<PlayableSoundProps> {
+  ): Promise<Sound> {
     const ss = await this.getSoundStore(serverID);
-    for (const sound of ss.sounds) {
-      if (sound.name === soundName) return sound;
+    for (const soundProps of ss.sounds) {
+      if (soundProps.name === soundName) return new Sound(soundProps);
     }
     return null;
   }
@@ -165,7 +200,6 @@ export class SoundByte extends SoundModule {
 
     let idx = -1;
     for (let i = 0; i < ss.sounds.length; i++) {
-      console.log(ss.sounds[i].name, soundName);
       if (ss.sounds[i].name === soundName) idx = i;
     }
     if (idx === -1) {
