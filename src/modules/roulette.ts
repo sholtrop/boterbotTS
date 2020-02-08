@@ -1,6 +1,7 @@
 import { BotModule, ModuleHandler } from "../command";
 import { Client, User, GuildMember, TextChannel, Message } from "discord.js";
 import { validateNumber, asyncSleep, randomChoice } from "../utils";
+import { SoundPlayer } from "../soundPlayer";
 
 class RouletteGame {
   private gameMessage: Message;
@@ -9,7 +10,9 @@ class RouletteGame {
     "# is in a better place now...",
     "# is sleeping with the fishes",
     "# heeft de big RIP",
-    "# got rekt"
+    "# got rekt",
+    "BOOM! There goes #",
+    "Sayonara #"
   ];
   private async shoot(victim: GuildMember) {
     await this.channel.send(
@@ -17,7 +20,6 @@ class RouletteGame {
     );
     await victim.setVoiceChannel(null);
   }
-
   public async addParticipant(participant: GuildMember | User) {
     if (participant instanceof User)
       participant = await this.gameMessage.guild.fetchMember(participant);
@@ -113,16 +115,17 @@ export class RussianRoulette extends BotModule {
   public info() {
     return "Start a fun round of Russian roulette. The loser gets yeeted out of the server.";
   }
-  private rouletteGames: { [index: string]: RouletteGame } = {};
+  private currentGame: RouletteGame = null;
 
   private async makeRoulette(
     user: GuildMember,
     channel: TextChannel,
     waitFor: number
   ) {
-    if (Object.keys(this.rouletteGames).includes(user.id))
-      return "You already have an active roulette game. Wait for it to finish before making another one.";
-    this.rouletteGames[user.id] = new RouletteGame(channel, user);
-    await this.rouletteGames[user.id].start(waitFor);
+    if (this.currentGame !== null)
+      return "There is already an active roulette game. Wait for it to finish before making another one.";
+    this.currentGame = new RouletteGame(channel, user);
+    await this.currentGame.start(waitFor);
+    this.currentGame = null;
   }
 }
