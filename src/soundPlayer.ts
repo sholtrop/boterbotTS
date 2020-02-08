@@ -4,7 +4,6 @@ import { VoiceChannel } from "discord.js";
 import { YoutubeSoundProps as YoutubeSound } from "./database/schema";
 import { asyncSleep } from "./utils";
 import * as ytdl from "ytdl-core";
-import { SoundFile as FileSound } from "./types";
 
 // PlayerState
 export enum PS {
@@ -28,22 +27,23 @@ export class Sound {
   public toString() {
     return this._name;
   }
-  constructor(soundStream: FileSound | YoutubeSound) {
+  constructor(soundStream: string | YoutubeSound, volume?: number) {
     this._broadcast = client.createVoiceBroadcast();
-    this._name = soundStream.name;
+
     // Play local sound
-    if (soundStream instanceof FileSound) {
-      if (soundStream.path.split(".").pop() !== "mp3")
-        console.error("soundStream file should be .mp3");
+    if (typeof soundStream === "string") {
+      this._name = soundStream;
+      this._length = 0;
       this.play = () => {
-        this._broadcast.playFile(soundStream.path, {
-          volume: soundStream.volume / 100
+        this._broadcast.playFile(`./assets/${soundStream}.mp3`, {
+          volume: (volume || 10) / 100
         });
         return this._broadcast;
       };
     }
     // Stream from YouTube
     else {
+      this._name = soundStream.name;
       const stream = ytdl(soundStream.link, { filter: "audioonly" });
       this._length = soundStream.end - soundStream.start;
       this.play = () => {

@@ -1,7 +1,6 @@
 import { BotModule, ModuleHandler } from "../command";
 import { Client, User, GuildMember, TextChannel, Message } from "discord.js";
 import { validateNumber, asyncSleep, randomChoice } from "../utils";
-import { SoundPlayer } from "../soundPlayer";
 
 class RouletteGame {
   private gameMessage: Message;
@@ -21,25 +20,28 @@ class RouletteGame {
     await victim.setVoiceChannel(null);
   }
   public async addParticipant(participant: GuildMember | User) {
-    if (participant instanceof User)
+    if (participant instanceof User) {
+      if (Object.keys(this.participants).includes(participant.username)) return;
       participant = await this.gameMessage.guild.fetchMember(participant);
-    this.participants[participant.displayName] = participant;
+    } else if (Object.keys(this.participants).includes(participant.displayName))
+      return;
+    this.participants[participant.user.username] = participant;
   }
   public listParticipants() {
     let msg = "";
     for (const p of Object.values(this.participants)) {
       msg += "\n" + p.displayName;
     }
+    console.log(msg);
     return msg;
   }
   public async start(waitFor: number) {
-    // this.addParticipant(this.creator);
     this.gameMessage = (await this.channel.send(
       `${
         this.creator.displayName
       } started a game of Russian roulette. Leave an emoji reaction on this message to participate. Best of luck...\n
       Game starts in ${waitFor} second(s)\n
-      Participants: ${this.listParticipants()}`
+      Participants:${this.listParticipants()}`
     )) as Message;
     while (waitFor > 0) {
       await asyncSleep(1000);
@@ -65,11 +67,12 @@ class RouletteGame {
         for (const p of Object.values(newParticipants)) {
           await this.addParticipant(p);
         }
+
         await this.gameMessage.edit(
-          this.gameMessage.content.replace(
-            /Participants:.*/,
-            `Participants:${this.listParticipants()}`
-          )
+          this.gameMessage.content
+            .split("\n")
+            .slice(0, 5)
+            .join("\n") + this.listParticipants()
         );
       }
     }

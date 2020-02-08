@@ -11,9 +11,9 @@ import { BotModule } from "./command";
 export type AnyTextChannel = TextChannel | DMChannel | GroupDMChannel;
 
 export class SoundFile {
-  path: string;
-  volume: number;
-  name: string;
+  public path: string;
+  public volume: number;
+  public name: string;
 }
 
 export interface Command {
