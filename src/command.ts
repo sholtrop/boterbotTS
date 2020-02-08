@@ -98,22 +98,24 @@ export abstract class BotModule {
       if (!cmd.args[0]) return this.help();
       return this.help(cmd.args[0]);
     }
-    if (cmd.method === undefined || !allHandlers.includes(cmd.method)) {
+    if (cmd.method === undefined || !(cmd.method in allHandlers)) {
       // See if it is a valid methodless call
       if (allHandlers.includes("")) {
         cmd.args.splice(0, 0, cmd.method);
         cmd.method = "";
       } else {
-        return `${this._name} has no functionality called \`${cmd.args[0]}\`. Try \`${this.prefix}${this._name} help\``;
+        return (
+          `\`${this._name}` +
+          (cmd.args[0] === undefined
+            ? "` needs a command to do something"
+            : `\` has no functionality called ${cmd.args[0]}`) +
+          `. Try \`${this.prefix}${this._name} help\``
+        );
       }
     }
     // Verify whether required parameters are present
     this.verifyParams(cmd);
     // Call relevant handler
-    return await this.handlers[cmd.method].action(
-      cmd.requester,
-      cmd.serverID,
-      ...cmd.args
-    );
+    return await this.handlers[cmd.method].action(cmd);
   }
 }

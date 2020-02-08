@@ -6,14 +6,15 @@ import {
   UserQuote,
   UserQuoteDoc
 } from "../database/schema";
-import { capitalize } from "../utils";
+import { capitalize, validateNumber } from "../utils";
 import * as moment from "moment";
 
-class Quotes extends BotModule {
+export class Quotes extends BotModule {
   protected handlers: { [index: string]: ModuleHandler } = {
     "": {
-      action: (user, server, name, number) => {
-        return this.displayQuote(server.id, name, number);
+      action: ({ user, server, args }) => {
+        //, user, server, name, number
+        return this.displayQuote(user.username, server.id, ...args);
       },
       params: [
         { name: "name", optional: true },
@@ -23,7 +24,7 @@ class Quotes extends BotModule {
         "Display a random quote, or display a random / the [number]th from [name]"
     },
     new: {
-      action: (user, server, ...args) => {
+      action: ({ user, server, args }) => {
         return this.addQuote(user, server.id, args[0], args.slice(1).join(" "));
       },
       params: [
@@ -33,22 +34,22 @@ class Quotes extends BotModule {
       description: "Adds <quote> to <name> as a quote"
     },
     addname: {
-      action: (user, server, name) => {
-        return this.addName(server.id, name);
+      action: ({ user, server, args }) => {
+        return this.addName(server.id, args[0]);
       },
       params: [{ name: "name", optional: false }],
       description: "Adds <name> to the list of quote-havers"
     },
     removename: {
-      action: (user, server, name) => {
-        return this.removeName(server.id, name);
+      action: ({ user, server, args }) => {
+        return this.removeName(server.id, args[0]);
       },
       description: "Removes <name> from the list of quoted people",
       params: [{ name: "name", optional: false }]
     },
     all: {
-      action: (user, server, name) => {
-        if (name) return this.displayAllQuotes(server.id, name);
+      action: ({ server, args }) => {
+        if (name) return this.displayAllQuotes(server.id, args[0]);
         return this.displayNames(server.id);
       },
       params: [{ name: "user", optional: true }],
@@ -56,8 +57,8 @@ class Quotes extends BotModule {
         "Display all users with quote count, or display all quotes of [user]"
     },
     delete: {
-      action: (user, server, name, number) => {
-        return this.deleteQuote(server.id, name, number);
+      action: ({ server, args }) => {
+        return this.deleteQuote(server.id, args[0], args[1]);
       },
       params: [
         { name: "name", optional: false },
@@ -131,13 +132,7 @@ class Quotes extends BotModule {
     name = capitalize(name);
     let quoteChoice: UserQuoteDoc;
     let userQuotes: UserQuoteDoc[];
-    let num: number;
-    if (number) {
-      num = parseInt(number, 10);
-      if (isNaN(num)) return `${number} is not a valid number`;
-      if (num === 0)
-        return "Quote numbers start from 1 here, you programming nerd.";
-    }
+    let num: number = validateNumber(number);
     const qs = await this.getQuoteStore(serverID);
 
     if (name) {
@@ -202,14 +197,8 @@ class Quotes extends BotModule {
   }
   private async deleteQuote(serverID: string, name: string, number?: string) {
     name = capitalize(name);
-    let num: number;
+    let num: number = validateNumber(number);
     let msg: string;
-    if (number) {
-      num = parseInt(number, 10);
-      if (isNaN(num)) return `${number} is not a valid number`;
-      if (num === 0)
-        return "Quote numbers start from 1 here, you programming nerd.";
-    }
     console.log(serverID, name, number);
     const qs = await this.getQuoteStore(serverID);
     if (!this.nameInQuoteHavers(qs, name))
@@ -251,4 +240,3 @@ class Quotes extends BotModule {
     return qs as QuoteStoreDoc;
   }
 }
-export default Quotes;

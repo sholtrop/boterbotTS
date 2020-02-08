@@ -1,6 +1,5 @@
 import { Message, Client, Util } from "discord.js";
 import { AnyTextChannel, BotConfig, ExecuteError, Command } from "./types";
-import { SoundPlayer, Sound } from "./soundPlayer";
 import { BotModule } from "./command";
 import * as Discord from "discord.js";
 
@@ -14,17 +13,8 @@ export class BoterBot {
     [index: string]: (this: BoterBot) => string;
   } = {
     info: this.giveFullBotInfo,
-    help: this.giveFullBotInfo,
-    stop: () => {
-      this.player.stop();
-      return "Stopped";
-    },
-    skip: () => {
-      this.player.skip();
-      return "Skipped";
-    }
+    help: this.giveFullBotInfo
   };
-  private readonly player: SoundPlayer;
   private readonly token: string;
   private readonly prefix: string;
   private modules: {
@@ -34,9 +24,8 @@ export class BoterBot {
     this.client = client;
     this.token = config.token;
     this.prefix = config.prefix;
-    this.player = new SoundPlayer();
     for (const mod of config.modules) {
-      if (Object.keys(this.botMethods).includes(mod.name)) {
+      if (mod.name in this.botMethods) {
         console.error(
           `Error: BotModule ${mod.name} is shadowed by a Bot standard function`
         );
@@ -100,12 +89,13 @@ export class BoterBot {
       cmd = {
         method: message[0],
         args: message.slice(2),
-        serverID: null,
-        requester: null
+        server: null,
+        user: null,
+        messageChannel: msg.channel
       };
     }
     // No such module
-    else if (!Object.keys(this.modules).includes(message[0])) {
+    else if (!(message[0] in this.modules)) {
       console.log("No such module");
       cmd = null;
     }
@@ -115,19 +105,20 @@ export class BoterBot {
       cmd = {
         method: message[1],
         args: message.slice(2),
-        serverID: null,
-        requester: null
+        server: null,
+        user: null,
+        messageChannel: msg.channel
       };
     }
     if (cmd) {
-      cmd.serverID = msg.guild;
-      cmd.requester = msg.author;
+      cmd.server = msg.guild;
+      cmd.user = msg.author;
     }
     return [target, cmd];
   }
 
   private handleResponse(channel: AnyTextChannel, response: string): string {
-    if (response !== null) channel.send(response);
+    if (response !== null && response !== undefined) channel.send(response);
     return response;
   }
 

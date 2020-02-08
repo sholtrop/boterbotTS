@@ -16,14 +16,13 @@ export class SoundByte extends BotModule {
   private player = new SoundPlayer();
   protected handlers: { [index: string]: ModuleHandler } = {
     "": {
-      action: async (user, server, soundName) => {
+      action: async ({ user, server, args }) => {
+        const soundName = args[0];
         const channel = (await server.fetchMember(user)).voiceChannel;
         const s = await this.fetchSound(server.id, soundName);
         if (s === null) return `Sound with ${soundName} does not exist`;
         if (channel === undefined) {
-          await user.dmChannel.sendMessage(
-            "Pssh, you need to be in a voice channel"
-          );
+          await user.dmChannel.send("Pssh, you need to be in a voice channel");
           return null;
         }
         this.player.playSound(s, channel);
@@ -38,7 +37,8 @@ export class SoundByte extends BotModule {
       ]
     },
     new: {
-      action: (user, server, link, start, end, soundName, volume?) => {
+      action: ({ user, server, args }) => {
+        let [link, start, end, soundName, volume] = args;
         return this.addSound(
           server.id,
           user.id,
@@ -60,21 +60,23 @@ export class SoundByte extends BotModule {
       ]
     },
     delete: {
-      action: (user, server, soundName) => {
+      action: ({ server, args }) => {
+        const soundName = args[0];
         return this.removeSound(server.id, soundName);
       },
       description: "Remove soundclip with <name> from the list",
       params: [{ name: "name", optional: false }]
     },
     list: {
-      action: (user, server) => {
+      action: ({ server }) => {
         return this.giveSoundList(server.id);
       },
       description: "Give the list of all sounds available for this server",
       params: null
     },
     stats: {
-      action: (user, server, top) => {
+      action: ({ server, args }) => {
+        const top = args[0];
         return this.giveStats(server.id, top);
       },
       description:
@@ -82,7 +84,7 @@ export class SoundByte extends BotModule {
       params: [{ name: "top", optional: true }]
     },
     stop: {
-      action: (user, server) => {
+      action: ({}) => {
         this.player.stop();
         return null;
       },
@@ -91,7 +93,7 @@ export class SoundByte extends BotModule {
       params: null
     },
     skip: {
-      action: (user, server) => {
+      action: ({}) => {
         this.player.skip();
         return null;
       },
@@ -124,7 +126,7 @@ export class SoundByte extends BotModule {
       return `Invalid soundclip name ${name}. May only contain letters and numbers.`;
     if (name.length > maxLength)
       return `${name} is too long a name. Choose something below ${maxLength} characters.`;
-    if (Object.keys(this.handlers).includes(name))
+    if (name in this.handlers)
       return `${name} is already the name of a command, choose a different one.`;
     if (!ytdl.validateURL(link)) return `${link} is not a valid YouTube URL`;
     name = name.toLowerCase();
@@ -135,7 +137,7 @@ export class SoundByte extends BotModule {
       ? start
       : Number.isNaN(endNum)
       ? end
-      : null;
+      : null; // Both numbers correct
     if (wrongNum)
       return `${wrongNum} is not a valid timestamp. Use \`hh:mm:ss\` or \`mm:ss\` or \`ss\` format`;
     if (volume) volumeNum = parseInt(volume, 10);

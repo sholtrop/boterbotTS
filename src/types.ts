@@ -19,8 +19,9 @@ export class SoundFile {
 export interface Command {
   method: string;
   args: Array<string>;
-  serverID: Guild;
-  requester: User;
+  server: Guild;
+  user: User;
+  messageChannel: AnyTextChannel;
 }
 
 export interface ExecuteError {
@@ -30,11 +31,7 @@ export interface ExecuteError {
 // [nameOfArg, optional?]
 export type HandlerParams = { name: string; optional: boolean }[];
 
-export type HandlerAction = (
-  user: User,
-  server: Guild,
-  ...args: string[]
-) => string | Promise<string>;
+export type HandlerAction = (cmd: Command) => string | Promise<string>;
 
 export interface BotConfig {
   token: string;

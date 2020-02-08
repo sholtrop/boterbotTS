@@ -82,25 +82,17 @@ export class SoundPlayer {
     if (channel === undefined) return;
     this.soundQueue.push(sound);
     // Sound has been enqueued, also start the player if it isn't playing already
-    console.log("Queue: [");
-    for (const i of this.soundQueue) {
-      console.log(i.name + ",");
-    }
-    console.log("]");
-    console.log("State:", this._playState);
     if (this._playState === PS.stopped) {
       this._playState = PS.playing;
       await channel
         .join()
         .then(async connection => {
           while (this.soundQueue.length > 0) {
-            console.log("New sound");
             const currentSound = this.soundQueue.shift();
             const dispatcher = connection.playBroadcast(currentSound.play());
             let toWait = currentSound.length * 1000;
             while (toWait > 0) {
               if (this._playState !== PS.playing) {
-                console.log("Should stop playing");
                 dispatcher.end();
                 toWait = 0;
               } else {
@@ -116,7 +108,6 @@ export class SoundPlayer {
           }
         })
         .catch(console.error);
-      console.log("Done");
       channel.leave();
       this._playState = PS.stopped;
     }
