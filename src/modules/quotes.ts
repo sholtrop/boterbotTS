@@ -12,9 +12,8 @@ import * as moment from "moment";
 export class Quotes extends BotModule {
   protected handlers: { [index: string]: ModuleHandler } = {
     "": {
-      action: ({ user, server, args }) => {
-        //, user, server, name, number
-        return this.displayQuote(user.username, server.id, ...args);
+      action: ({ server, args }) => {
+        return this.displayQuote(server.id, ...args);
       },
       params: [
         { name: "name", optional: true },
@@ -34,14 +33,14 @@ export class Quotes extends BotModule {
       description: "Adds <quote> to <name> as a quote"
     },
     addname: {
-      action: ({ user, server, args }) => {
+      action: ({ server, args }) => {
         return this.addName(server.id, args[0]);
       },
       params: [{ name: "name", optional: false }],
       description: "Adds <name> to the list of quote-havers"
     },
     removename: {
-      action: ({ user, server, args }) => {
+      action: ({ server, args }) => {
         return this.removeName(server.id, args[0]);
       },
       description: "Removes <name> from the list of quoted people",
@@ -49,7 +48,8 @@ export class Quotes extends BotModule {
     },
     all: {
       action: ({ server, args }) => {
-        if (name) return this.displayAllQuotes(server.id, args[0]);
+        const name = args[0];
+        if (name) return this.displayAllQuotes(server.id, name);
         return this.displayNames(server.id);
       },
       params: [{ name: "user", optional: true }],

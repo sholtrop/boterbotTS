@@ -98,7 +98,7 @@ export abstract class BotModule {
       if (!cmd.args[0]) return this.help();
       return this.help(cmd.args[0]);
     }
-    if (cmd.method === undefined || !(cmd.method in allHandlers)) {
+    if (cmd.method === undefined || !allHandlers.includes(cmd.method)) {
       // See if it is a valid methodless call
       if (allHandlers.includes("")) {
         cmd.args.splice(0, 0, cmd.method);
