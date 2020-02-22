@@ -16,14 +16,13 @@ export class SoundByte extends BotModule {
   private player = new SoundPlayer();
   protected handlers: { [index: string]: ModuleHandler } = {
     "": {
-      action: async ({ user, server, args }) => {
+      action: async ({ user, server, args, messageChannel }) => {
         const soundName = args[0];
         const channel = (await server.fetchMember(user)).voiceChannel;
         const s = await this.fetchSound(server.id, soundName);
-        // const s = new Sound("magnum_shot");
         if (s === null) return `Sound with ${soundName} does not exist`;
-        if (channel === undefined) {
-          await user.dmChannel.send("Pssh, you need to be in a voice channel");
+        if (!channel) {
+          await messageChannel.send("You need to be in a voice channel!");
           return null;
         }
         this.player.playSound(s, channel);

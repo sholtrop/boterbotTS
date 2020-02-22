@@ -80,18 +80,18 @@ export class Quotes extends BotModule {
   private beautifyQuote(
     name: string,
     q: UserQuoteDoc,
-    number?: number
+    number?: number,
+    fields = { quoteeName: true, addedBy: true, date: true }
   ): string {
     const { quote, createdAt, addedBy } = q;
 
     let beautified = number ? `> ${number}. _${quote}_\n` : `> _${quote}_\n`;
-    if (name)
-      if (createdAt)
-        beautified += `- ${name},\n${moment(createdAt).format(
-          this._dateFormat
-        )}`;
-      else beautified += `- ${name}`;
-    if (addedBy) beautified += `\n_Added by ${addedBy}_`;
+    if (name && fields.quoteeName) beautified += `- ${name}`;
+    if (createdAt && fields.date) {
+      if (name && fields.quoteeName) beautified += ",\n";
+      beautified += `${moment(createdAt).format(this._dateFormat)}`;
+    }
+    if (addedBy && fields.addedBy) beautified += `\n_Added by ${addedBy}_`;
     return beautified;
   }
   private async addQuote(
@@ -165,7 +165,7 @@ export class Quotes extends BotModule {
   }
   private async displayAllQuotes(serverID: string, name: string) {
     name = capitalize(name);
-    let msg = "";
+    let msg = `All quotes for ${name}:\n`;
     const qs = await this.getQuoteStore(serverID);
     if (!qs) return "This server does not have any quotes yet";
     if (!this.nameInQuoteHavers(qs, name))
@@ -176,11 +176,20 @@ export class Quotes extends BotModule {
     let i: number;
     let allQuotes = qs.quotes.get(name);
     for (i = 0; i < allQuotes.length - 1; i++) {
-      msg += this.beautifyQuote(name, allQuotes[i], i + 1);
+      msg +=
+        this.beautifyQuote(name, allQuotes[i], i + 1, {
+          addedBy: false,
+          date: true,
+          quoteeName: false
+        }) + "\n";
     }
     const lastQuote = allQuotes[i];
     lastQuote.addedBy = null;
-    msg += this.beautifyQuote(name, lastQuote, i + 1);
+    msg += this.beautifyQuote(name, lastQuote, i + 1, {
+      addedBy: false,
+      date: true,
+      quoteeName: false
+    });
     return msg;
   }
   private async displayNames(serverID: string) {
