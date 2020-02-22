@@ -8,7 +8,7 @@ export class ModuleHandler {
   description: string;
 }
 export abstract class BotModule {
-  protected client: Client;
+  protected abstract client: Client;
   protected abstract _name: string;
   get name() {
     return this._name;
@@ -73,8 +73,13 @@ export abstract class BotModule {
 
   public verifyParams(cmd: Command): void {
     console.log("Verifying parameters");
+    const argc = this.handlers[cmd.method].params?.length;
     if (!this.handlers[cmd.method].params) return;
     let idx = 0;
+    if (argc && cmd.args && argc < cmd.args.length)
+      throw {
+        messageToUser: `Too many arguments. I only need ${argc}. Are you including a sentence as a single argument? Make sure to wrap it in double quotes ("my sentence")`
+      };
     for (const param of this.handlers[cmd.method].params) {
       console.log(param, cmd.args[idx]);
       if (!param.optional && !cmd.args[idx]) {

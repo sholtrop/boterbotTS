@@ -111,7 +111,7 @@ export class RussianRoulette extends BotModule {
       params: null
     }
   };
-  constructor(protected prefix: string, protected _client: Client) {
+  constructor(protected prefix: string, protected client: Client) {
     super();
   }
   protected _name = "roulette";

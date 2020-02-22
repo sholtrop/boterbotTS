@@ -5,11 +5,13 @@ import { client } from "../bot";
 import { Quotes } from "./quotes";
 import { SoundByte } from "./sound";
 import { RussianRoulette } from "./roulette";
+import { MemeCreator } from "./meme";
 
 export const allModules = (prefix: string) => {
   return [
     new Quotes(prefix, client),
     new SoundByte(prefix, client),
-    new RussianRoulette(prefix, client)
+    new RussianRoulette(prefix, client),
+    new MemeCreator(prefix, client)
   ];
 };

@@ -53,22 +53,21 @@ export class BoterBot {
     ) {
       return;
     }
-    const [target, cmd] = this.parseMessage(msg);
     let response: string;
-    if (cmd === null) {
-      response = `I don't know what \`${this.prefix + target}\` means. Try \`${
-        this.prefix
-      }help\` to see what I can do.`;
-    } else if (target === "self") {
-      response = this.botMethods[cmd.method].call(this, cmd.args);
-    } else {
-      try {
+    try {
+      const [target, cmd] = this.parseMessage(msg);
+      if (cmd === null) {
+        response = `I don't know what \`${this.prefix +
+          target}\` means. Try \`${this.prefix}help\` to see what I can do.`;
+      } else if (target === "self") {
+        response = this.botMethods[cmd.method].call(this, cmd.args);
+      } else {
         response = await this.modules[target].execute(cmd);
-      } catch (error) {
-        const err: ExecuteError = error;
-        response = err.messageToUser;
-        console.error(error);
       }
+    } catch (error) {
+      const err: ExecuteError = error;
+      response = err.messageToUser || "Unknown error :(";
+      console.error(error);
     }
     this.handleResponse(msg.channel, response);
   }
@@ -76,26 +75,42 @@ export class BoterBot {
   private parseMessage(this: BoterBot, msg: Message): [string, Command] {
     let cmd: Command;
     let target: string;
-    let message: Array<string> = Util.escapeMarkdown(msg.content)
+    let parsed: string[] = [];
+    let accum = "";
+    let inQuote = false;
+    let message: string = Util.escapeMarkdown(msg.content)
       .trim()
-      .substr(this.prefix.length)
-      .split(" ");
-    message = message.filter(val => val !== "");
-    target = message[0];
-    console.log("Received:", message);
+      .substr(this.prefix.length);
+    for (const i of message) {
+      if (i === " " && !inQuote) {
+        parsed.push(accum);
+        accum = "";
+      } else if (i === '"') {
+        inQuote = !inQuote;
+      } else accum += i;
+    }
+    if (inQuote)
+      throw {
+        messageToUser:
+          'Parsing error: You have an unclosed quote! Make sure every opening " has a closing " as well!'
+      };
+    if (accum) parsed.push(accum);
+
+    target = parsed[0];
+    console.log("Received:", parsed);
     // Target is not a module method, but a bot default method, e.g. '!info'.
-    if (message.length === 1 && this.botMethods[target]) {
+    if (parsed.length === 1 && this.botMethods[target]) {
       target = "self";
       cmd = {
-        method: message[0],
-        args: message.slice(2),
+        method: parsed[0],
+        args: parsed.slice(2),
         server: null,
         user: null,
         messageChannel: msg.channel
       };
     }
     // No such module
-    else if (!(message[0] in this.modules)) {
+    else if (!(parsed[0] in this.modules)) {
       console.log("No such module");
       cmd = null;
     }
@@ -103,8 +118,8 @@ export class BoterBot {
     else {
       console.log("Successful command");
       cmd = {
-        method: message[1],
-        args: message.slice(2),
+        method: parsed[1],
+        args: parsed.slice(2),
         server: null,
         user: null,
         messageChannel: msg.channel

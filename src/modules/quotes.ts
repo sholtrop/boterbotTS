@@ -24,7 +24,7 @@ export class Quotes extends BotModule {
     },
     new: {
       action: ({ user, server, args }) => {
-        return this.addQuote(user, server.id, args[0], args.slice(1).join(" "));
+        return this.addQuote(user, server.id, args[0], args[1]);
       },
       params: [
         { name: "name", optional: false },

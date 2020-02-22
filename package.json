@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/sholtrop/boterbotjs#readme",
   "dependencies": {
+    "@jimp/types": "^0.9.3",
     "@typeit/discord": "^1.0.3",
     "@types/moment": "^2.13.0",
     "@types/mongoose": "^5.5.41",
@@ -32,6 +33,7 @@
     "auto-bind": "^4.0.0",
     "discord.js": "^11.5.1",
     "dotenv": "^8.2.0",
+    "jimp": "^0.9.3",
     "moment": "^2.24.0",
     "mongoose": "^5.8.10",
     "node-opus": "^0.3.3",
