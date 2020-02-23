@@ -16,7 +16,7 @@ export abstract class BotModule {
   protected _dateFormat = "MMMM Do, Y";
   // helpWidth has a minimum of 40, but is overwritten at startup if there is
   // any handlerInfo string that exceeds 40 characters.
-  private helpWidth = 40;
+  private helpWidth = 50;
   protected abstract readonly prefix: string;
   protected abstract handlers: { [index: string]: ModuleHandler };
 
@@ -41,7 +41,11 @@ export abstract class BotModule {
     if (align)
       info +=
         cmdInfo +
-        " ".repeat(this.helpWidth - cmdInfo.length) +
+        " ".repeat(
+          this.helpWidth - cmdInfo.length > 0
+            ? this.helpWidth - cmdInfo.length
+            : 0
+        ) +
         handler.description;
     else return cmdInfo;
     return info;
