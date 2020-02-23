@@ -76,7 +76,7 @@ export class MemeCreator extends BotModule {
     return null;
   }
   private async showTemplates(): Promise<string> {
-    let msg = "Available meme templates:\n```";
+    let msg = "Available meme templates:\n```\n";
     const names = this.getNames();
     for (const name of names) {
       msg += name.split(".")[0] + "\n";
@@ -84,6 +84,6 @@ export class MemeCreator extends BotModule {
     return msg + "```";
   }
   private getNames(): string[] {
-    return fs.readdirSync(process.cwd() + "/src/modules/meme/templates");
+    return Object.keys(templateData);
   }
 }
