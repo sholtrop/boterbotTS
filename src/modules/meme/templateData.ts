@@ -10,6 +10,15 @@ const templates: MemeTemplateData = {
     startSecondY: 330,
     endX: 440,
     endY: 800
+  },
+  behindyou: {
+    font: Jimp.FONT_SANS_32_BLACK,
+    startFirstX: 490,
+    startFirstY: 130,
+    startSecondX: 10,
+    startSecondY: 740,
+    endX: 240,
+    endY: 800
   }
 };
 const templateList = Object.keys(templates);
