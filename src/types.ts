@@ -38,3 +38,15 @@ export interface BotConfig {
   prefix: string;
   modules: Array<BotModule>;
 }
+
+export interface MemeTemplateData {
+  [index: string]: {
+    font: string;
+    startFirstX: number;
+    startSecondX: number;
+    startFirstY: number;
+    startSecondY: number;
+    endX: number;
+    endY: number;
+  };
+}

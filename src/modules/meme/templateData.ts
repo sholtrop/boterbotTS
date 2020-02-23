@@ -1,18 +1,7 @@
 import * as fs from "fs";
 import * as Jimp from "jimp";
-
-interface templateData {
-  [index: string]: {
-    font: string;
-    startFirstX: number;
-    startSecondX: number;
-    startFirstY: number;
-    startSecondY: number;
-    endX: number;
-    endY: number;
-  };
-}
-const templates: templateData = {
+import { MemeTemplateData } from "../../types";
+const templates: MemeTemplateData = {
   winnie: {
     font: Jimp.FONT_SANS_32_BLACK,
     startFirstX: 355,
