@@ -102,9 +102,9 @@ export class SoundPlayer {
             this._playState = PS.playing;
           }
         }
+        channel.leave();
+        this._playState = PS.stopped;
       });
     }
-    channel.leave();
-    this._playState = PS.stopped;
   }
 }
