@@ -85,14 +85,17 @@ export class SoundPlayer {
       await channel.join().then(async connection => {
         while (this.soundQueue.length > 0) {
           const currentSound = this.soundQueue.shift();
+          console.log(currentSound.name);
           const dispatcher = connection.playBroadcast(currentSound.play());
           let toWait = currentSound.length * 1000;
           while (toWait > 0) {
             if (this._playState !== PS.playing) {
+              console.log("Stop");
               dispatcher.end();
               toWait = 0;
             } else {
               await asyncSleep(this.checkInterval);
+              console.log("playing...");
               toWait -= this.checkInterval;
             }
           }

@@ -3,7 +3,8 @@ import {
   DMChannel,
   GroupDMChannel,
   Guild,
-  User
+  User,
+  RichEmbed
 } from "discord.js";
 
 import { BotModule } from "./command";
@@ -31,7 +32,11 @@ export interface ExecuteError {
 // [nameOfArg, optional?]
 export type HandlerParams = { name: string; optional: boolean }[];
 
-export type HandlerAction = (cmd: Command) => string | Promise<string>;
+export type HandlerResponse = { embed?: RichEmbed; message?: string };
+
+export type HandlerAction = (
+  cmd: Command
+) => HandlerResponse | Promise<HandlerResponse>;
 
 export interface BotConfig {
   token: string;

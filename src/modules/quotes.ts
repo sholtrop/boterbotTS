@@ -1,5 +1,5 @@
 import { BotModule, ModuleHandler } from "../command";
-import { User, Client } from "discord.js";
+import { User, Client, RichEmbed } from "discord.js";
 import {
   QuoteStore,
   QuoteStoreDoc,
@@ -8,6 +8,7 @@ import {
 } from "../database/schema";
 import { capitalize, validateNumber } from "../utils";
 import * as moment from "moment";
+import { HandlerResponse } from "../types";
 
 export class Quotes extends BotModule {
   protected handlers: { [index: string]: ModuleHandler } = {
@@ -23,8 +24,10 @@ export class Quotes extends BotModule {
         "Display a random quote, or display a random / the [number]th from [name]"
     },
     new: {
-      action: ({ user, server, args }) => {
-        return this.addQuote(user, server.id, args[0], args[1]);
+      action: async ({ user, server, args }) => {
+        return {
+          message: await this.addQuote(user, server.id, args[0], args[1])
+        };
       },
       params: [
         { name: "name", optional: false },
@@ -33,32 +36,33 @@ export class Quotes extends BotModule {
       description: "Adds <quote> to <name> as a quote"
     },
     addname: {
-      action: ({ server, args }) => {
-        return this.addName(server.id, args[0]);
+      action: async ({ server, args }) => {
+        return { message: await this.addName(server.id, args[0]) };
       },
       params: [{ name: "name", optional: false }],
       description: "Adds <name> to the list of quote-havers"
     },
     removename: {
-      action: ({ server, args }) => {
-        return this.removeName(server.id, args[0]);
+      action: async ({ server, args }) => {
+        return { message: await this.removeName(server.id, args[0]) };
       },
       description: "Removes <name> from the list of quoted people",
       params: [{ name: "name", optional: false }]
     },
     all: {
-      action: ({ server, args }) => {
+      action: async ({ server, args }) => {
         const name = args[0];
-        if (name) return this.displayAllQuotes(server.id, name);
-        return this.displayNames(server.id);
+        if (name)
+          return { message: await this.displayAllQuotes(server.id, name) };
+        return { message: await this.displayNames(server.id) };
       },
       params: [{ name: "user", optional: true }],
       description:
         "Display all users with quote count, or display all quotes of [user]"
     },
     delete: {
-      action: ({ server, args }) => {
-        return this.deleteQuote(server.id, args[0], args[1]);
+      action: async ({ server, args }) => {
+        return { message: await this.deleteQuote(server.id, args[0], args[1]) };
       },
       params: [
         { name: "name", optional: false },
@@ -81,18 +85,41 @@ export class Quotes extends BotModule {
     name: string,
     q: UserQuoteDoc,
     number?: number,
-    fields = { quoteeName: true, addedBy: true, date: true }
-  ): string {
+    extraFields = { quoteeName: true, addedBy: true, date: true }
+  ): RichEmbed {
     const { quote, createdAt, addedBy } = q;
-
-    let beautified = number ? `> ${number}. _${quote}_\n` : `> _${quote}_\n`;
-    if (name && fields.quoteeName) beautified += `- ${name}`;
-    if (createdAt && fields.date) {
-      if (name && fields.quoteeName) beautified += ",\n";
-      beautified += `${moment(createdAt).format(this._dateFormat)}`;
-    }
-    if (addedBy && fields.addedBy) beautified += `\n_Added by ${addedBy}_`;
-    return beautified;
+    const fields = extraFields.addedBy
+      ? [
+          {
+            name: "Added by",
+            value: addedBy,
+            inline: true
+          }
+        ]
+      : null;
+    const timestamp = extraFields.date ? createdAt : null;
+    const author = extraFields.quoteeName
+      ? {
+          name,
+          url: "",
+          icon_url: "https://discohook.org/assets/discord-avatar-red.png"
+        }
+      : null;
+    return new RichEmbed({
+      description: quote,
+      url: "https://discordapp.com/",
+      color: 15746887,
+      fields,
+      author,
+      footer: {
+        text: name,
+        icon_url: "https://discohook.org/assets/discord-avatar-red.png"
+      },
+      timestamp,
+      thumbnail: {
+        url: "https://discohook.org/assets/discord-avatar-red.png"
+      }
+    });
   }
   private async addQuote(
     requester: User,
@@ -128,7 +155,7 @@ export class Quotes extends BotModule {
     serverID: string,
     name?: string,
     number?: string
-  ): Promise<string> {
+  ): Promise<HandlerResponse> {
     name = capitalize(name);
     let quoteChoice: UserQuoteDoc;
     let userQuotes: UserQuoteDoc[];
@@ -137,16 +164,19 @@ export class Quotes extends BotModule {
 
     if (name) {
       if (!this.nameInQuoteHavers(qs, name))
-        return "This person is not registered yet. Add them with `!quote addname <name>`";
+        return {
+          message:
+            "This person is not registered yet. Add them with `!quote addname <name>`"
+        };
       userQuotes = qs.quotes.get(name);
       console.log(qs);
       if (userQuotes.length === 0)
-        return "This user does not have any quotes yet";
+        return { message: "This user does not have any quotes yet" };
     } else {
       let allNames = Array.from(qs.quotes.keys());
       do {
         if (allNames.length === 0)
-          return "This server does not have any quotes yet.";
+          return { message: "This server does not have any quotes yet." };
         name = allNames.splice(Math.random() * allNames.length, 1)[0];
       } while (qs.quotes.get(name).length === 0);
       userQuotes = qs.quotes.get(name);
@@ -155,13 +185,13 @@ export class Quotes extends BotModule {
     if (name && num) {
       quoteChoice = userQuotes[num - 1];
       if (quoteChoice === undefined)
-        return `Quote with number ${number} does not exist yet.`;
+        return { message: `Quote with number ${number} does not exist yet.` };
     } else {
       quoteChoice = userQuotes[Math.floor(Math.random() * userQuotes.length)];
     }
     if (quoteChoice.addedBy)
       quoteChoice.addedBy = await this.userIDtoName(quoteChoice.addedBy);
-    return this.beautifyQuote(name, quoteChoice);
+    return { embed: this.beautifyQuote(name, quoteChoice) };
   }
   private async displayAllQuotes(serverID: string, name: string) {
     name = capitalize(name);

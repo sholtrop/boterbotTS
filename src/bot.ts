@@ -1,5 +1,11 @@
 import { Message, Client, Util } from "discord.js";
-import { AnyTextChannel, BotConfig, ExecuteError, Command } from "./types";
+import {
+  AnyTextChannel,
+  BotConfig,
+  ExecuteError,
+  Command,
+  HandlerResponse
+} from "./types";
 import { BotModule } from "./command";
 import * as Discord from "discord.js";
 
@@ -53,12 +59,14 @@ export class BoterBot {
     ) {
       return;
     }
-    let response: string;
+    let response: HandlerResponse;
     try {
       const [target, cmd] = this.parseMessage(msg);
       if (cmd === null) {
-        response = `I don't know what \`${this.prefix +
-          target}\` means. Try \`${this.prefix}help\` to see what I can do.`;
+        response = {
+          message: `I don't know what \`${this.prefix +
+            target}\` means. Try \`${this.prefix}help\` to see what I can do.`
+        };
       } else if (target === "self") {
         response = this.botMethods[cmd.method].call(this, cmd.args);
       } else {
@@ -66,7 +74,7 @@ export class BoterBot {
       }
     } catch (error) {
       const err: ExecuteError = error;
-      response = err.messageToUser || "Unknown error :(";
+      response = { message: err.messageToUser || "Unknown error :(" };
       console.error(error);
     }
     this.handleResponse(msg.channel, response);
@@ -132,9 +140,13 @@ export class BoterBot {
     return [target, cmd];
   }
 
-  private handleResponse(channel: AnyTextChannel, response: string): string {
-    if (response !== null && response !== undefined) channel.send(response);
-    return response;
+  private handleResponse(
+    channel: AnyTextChannel,
+    response: HandlerResponse
+  ): string {
+    if (!response) return;
+    channel.send(response.message, response.embed);
+    return response.message;
   }
 
   public run(): void {

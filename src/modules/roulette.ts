@@ -92,7 +92,9 @@ export class RussianRoulette extends BotModule {
     "": {
       action: async ({ user, server, messageChannel, args }) => {
         if (!(messageChannel instanceof TextChannel)) {
-          return "This function only works in server message channels";
+          return {
+            message: "This function only works in server message channels"
+          };
         }
         this.makeRoulette(
           await server.fetchMember(user),

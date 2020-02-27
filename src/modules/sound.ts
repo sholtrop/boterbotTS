@@ -20,7 +20,8 @@ export class SoundByte extends BotModule {
         const soundName = args[0];
         const channel = (await server.fetchMember(user)).voiceChannel;
         const s = await this.fetchSound(server.id, soundName);
-        if (s === null) return `Sound with ${soundName} does not exist`;
+        if (s === null)
+          return { message: `Sound with ${soundName} does not exist` };
         if (!channel) {
           await messageChannel.send("You need to be in a voice channel!");
           return null;
@@ -37,17 +38,19 @@ export class SoundByte extends BotModule {
       ]
     },
     new: {
-      action: ({ user, server, args }) => {
+      action: async ({ user, server, args }) => {
         let [link, start, end, soundName, volume] = args;
-        return this.addSound(
-          server.id,
-          user.id,
-          soundName,
-          link,
-          start,
-          end,
-          volume
-        );
+        return {
+          message: await this.addSound(
+            server.id,
+            user.id,
+            soundName,
+            link,
+            start,
+            end,
+            volume
+          )
+        };
       },
       description:
         "Add soundclip from <start> to <end> of the video in <link>. Giving it <name> as a name, and optionally a [volume] from 1-100.",
@@ -60,24 +63,24 @@ export class SoundByte extends BotModule {
       ]
     },
     delete: {
-      action: ({ server, args }) => {
+      action: async ({ server, args }) => {
         const soundName = args[0];
-        return this.removeSound(server.id, soundName);
+        return { message: await this.removeSound(server.id, soundName) };
       },
       description: "Remove soundclip with <name> from the list",
       params: [{ name: "name", optional: false }]
     },
     list: {
-      action: ({ server }) => {
-        return this.giveSoundList(server.id);
+      action: async ({ server }) => {
+        return { message: await this.giveSoundList(server.id) };
       },
       description: "Give the list of all sounds available for this server",
       params: null
     },
     stats: {
-      action: ({ server, args }) => {
+      action: async ({ server, args }) => {
         const top = args[0];
-        return this.giveStats(server.id, top);
+        return { message: await this.giveStats(server.id, top) };
       },
       description:
         "View statistics about the soundbytes of this server, optionally of the [top] amount of most-played soundbytes",

@@ -8,9 +8,16 @@ import { templateData } from "./templateData";
 export class MemeCreator extends BotModule {
   protected handlers: { [index: string]: ModuleHandler } = {
     "": {
-      action: ({ messageChannel, args }) => {
+      action: async ({ messageChannel, args }) => {
         const [template, first, second] = args;
-        return this.createMeme(messageChannel, template, first, second);
+        return {
+          message: await this.createMeme(
+            messageChannel,
+            template,
+            first,
+            second
+          )
+        };
       },
       description: "Create a meme",
       params: [
@@ -20,8 +27,8 @@ export class MemeCreator extends BotModule {
       ]
     },
     list: {
-      action: () => {
-        return this.showTemplates();
+      action: async () => {
+        return { message: await this.showTemplates() };
       },
       description: "View available meme templates",
       params: null

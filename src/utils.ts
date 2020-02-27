@@ -19,6 +19,7 @@ export function hmsToSeconds(time: string): number {
     s += m * parseInt(p.pop(), 10);
     m *= 60;
   }
+  console.log("Time:", time, "Seconds:", s);
   return s;
 }
 
