@@ -9,6 +9,7 @@ import {
 import { capitalize, validateNumber } from "../utils";
 import * as moment from "moment";
 import { HandlerResponse } from "../types";
+import { isArray } from "util";
 
 export class Quotes extends BotModule {
   protected handlers: { [index: string]: ModuleHandler } = {
@@ -52,8 +53,7 @@ export class Quotes extends BotModule {
     all: {
       action: async ({ server, args }) => {
         const name = args[0];
-        if (name)
-          return { message: await this.displayAllQuotes(server.id, name) };
+        if (name) return await this.displayAllQuotes(server.id, name);
         return { message: await this.displayNames(server.id) };
       },
       params: [{ name: "user", optional: true }],
@@ -83,11 +83,17 @@ export class Quotes extends BotModule {
 
   private beautifyQuote(
     name: string,
-    q: UserQuoteDoc,
-    number?: number,
+    q: UserQuoteDoc | UserQuoteDoc[],
     extraFields = { quoteeName: true, addedBy: true, date: true }
   ): RichEmbed {
-    const { quote, createdAt, addedBy } = q;
+    let { quote = null, createdAt = null, addedBy = null } = !isArray(q)
+      ? q
+      : {};
+    if (isArray(q)) {
+      quote = q.reduce((acc, curr, idx) => {
+        return acc + `${idx + 1}. ${curr.quote}`;
+      }, "");
+    }
     const fields = extraFields.addedBy
       ? [
           {
@@ -190,30 +196,22 @@ export class Quotes extends BotModule {
   }
   private async displayAllQuotes(serverID: string, name: string) {
     name = capitalize(name);
-    let msg = `All quotes for ${name}:\n`;
+    let msg: HandlerResponse = { message: `All quotes for ${name}:\n` };
     const qs = await this.getQuoteStore(serverID);
-    if (!qs) return "This server does not have any quotes yet";
+    if (!qs) return { message: "This server does not have any quotes yet" };
     if (!this.nameInQuoteHavers(qs, name))
-      return "This person is not registered yet. Add them with `!quote addname <name>`";
+      return {
+        message:
+          "This person is not registered yet. Add them with `!quote addname <name>`"
+      };
     if (qs.quotes.get(name).length === 0) {
-      return "This user does not have any quotes yet";
+      return { message: "This user does not have any quotes yet" };
     }
-    let i: number;
     let allQuotes = qs.quotes.get(name);
-    for (i = 0; i < allQuotes.length - 1; i++) {
-      msg +=
-        this.beautifyQuote(name, allQuotes[i], i + 1, {
-          addedBy: false,
-          date: true,
-          quoteeName: false
-        }) + "\n";
-    }
-    const lastQuote = allQuotes[i];
-    lastQuote.addedBy = null;
-    msg += this.beautifyQuote(name, lastQuote, i + 1, {
+    msg.embed = this.beautifyQuote(name, allQuotes, {
       addedBy: false,
-      date: true,
-      quoteeName: false
+      date: false,
+      quoteeName: true
     });
     return msg;
   }

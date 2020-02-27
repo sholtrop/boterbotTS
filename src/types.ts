@@ -32,7 +32,10 @@ export interface ExecuteError {
 // [nameOfArg, optional?]
 export type HandlerParams = { name: string; optional: boolean }[];
 
-export type HandlerResponse = { embed?: RichEmbed; message?: string };
+export type HandlerResponse = {
+  embed?: RichEmbed;
+  message?: string;
+};
 
 export type HandlerAction = (
   cmd: Command
