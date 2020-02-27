@@ -107,14 +107,9 @@ export class Quotes extends BotModule {
       : null;
     return new RichEmbed({
       description: quote,
-      url: "https://discordapp.com/",
       color: 15746887,
       fields,
       author,
-      footer: {
-        text: name,
-        icon_url: "https://discohook.org/assets/discord-avatar-red.png"
-      },
       timestamp,
       thumbnail: {
         url: "https://discohook.org/assets/discord-avatar-red.png"
