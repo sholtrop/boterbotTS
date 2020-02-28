@@ -91,7 +91,7 @@ export class Quotes extends BotModule {
       : {};
     if (isArray(q)) {
       quote = q.reduce((acc, curr, idx) => {
-        return acc + `${idx + 1}. ${curr.quote}`;
+        return acc + `${idx + 1}. ${curr.quote}\n`;
       }, "");
     }
     const fields = extraFields.addedBy
