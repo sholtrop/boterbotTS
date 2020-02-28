@@ -236,7 +236,11 @@ export class Quotes extends BotModule {
     if (!this.nameInQuoteHavers(qs, name))
       return "This person is not registered yet. Add them with `!quote addname <name>`";
     if (num) {
-      qs.quotes.set(name, qs.quotes.get(name).splice(num, 1));
+      const currentQuotes = qs.quotes.get(name);
+      if (currentQuotes.length < num)
+        throw { messageToUser: `${name} does not have that many quotes` };
+      currentQuotes.splice(num - 1, 1);
+      qs.quotes.set(name, currentQuotes);
       msg = `Successfully deleted quote #${num} of ${name}`;
     } else {
       qs.quotes.set(name, []);
