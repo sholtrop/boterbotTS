@@ -16,7 +16,7 @@ export const client = new Discord.Client();
 export class BoterBot {
   private readonly client: Client;
   private readonly botMethods: {
-    [index: string]: (this: BoterBot) => string;
+    [index: string]: (this: BoterBot) => HandlerResponse;
   } = {
     info: this.giveFullBotInfo,
     help: this.giveFullBotInfo
@@ -42,14 +42,14 @@ export class BoterBot {
     console.log("Using modules:", Object.keys(this.modules));
   }
 
-  private giveFullBotInfo(): string {
+  private giveFullBotInfo(): HandlerResponse {
     let info = "**--------- BoterBot 2.0 TypeScript edition ---------**\n";
     info += "Howdy, I'm the new Boterbot. This is what I can do:\n";
     for (let [k, mod] of Object.entries(this.modules)) {
       info += "`" + this.prefix + mod.name + "` " + mod.info() + "\n";
     }
     info += "\nUse `!<command> help` to find out how to use them";
-    return info;
+    return { message: info };
   }
 
   private async onMessage(this: BoterBot, msg: Message): Promise<void> {
