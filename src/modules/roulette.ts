@@ -19,13 +19,17 @@ class RouletteGame {
     );
     await victim.setVoiceChannel(null);
   }
-  public async addParticipant(participant: GuildMember | User) {
+  public async addParticipant(
+    participant: GuildMember | User
+  ): Promise<boolean> {
     if (participant instanceof User) {
-      if (Object.keys(this.participants).includes(participant.username)) return;
+      if (Object.keys(this.participants).includes(participant.username))
+        return false;
       participant = await this.gameMessage.guild.fetchMember(participant);
     } else if (Object.keys(this.participants).includes(participant.displayName))
-      return;
+      return false;
     this.participants[participant.user.username] = participant;
+    return true;
   }
   public listParticipants() {
     let msg = "";
@@ -37,12 +41,11 @@ class RouletteGame {
   }
   public async start(waitFor: number) {
     this.gameMessage = (await this.channel.send(
-      `${
-        this.creator.displayName
-      } started a game of Russian roulette. Leave an emoji reaction on this message to participate. Best of luck...\n
-      Game starts in ${waitFor} second(s)\n
-      Participants:${this.listParticipants()}`
+      `${this.creator.displayName} started a game of Russian roulette. Leave an emoji reaction on this message to participate. Best of luck...\n` +
+        `Game starts in ${waitFor} second(s)\n` +
+        `Participants:${this.listParticipants()}`
     )) as Message;
+    const collector = this.gameMessage.createReactionCollector(() => true);
     while (waitFor > 0) {
       await asyncSleep(1000);
       await this.gameMessage.edit(
@@ -51,29 +54,15 @@ class RouletteGame {
           `Game starts in ${--waitFor}`
         )
       );
-      let newParticipants = this.gameMessage.reactions.reduce(
-        (acc: { [index: string]: User }, reaction) => {
-          for (const user of reaction.users.values()) acc[user.username] = user;
-          return acc;
-        },
-        {}
-      );
-      if (
-        // If the newParticipants list has a key that is NOT in the current participants list, add them
-        Object.keys(newParticipants).some(
-          p => !Object.keys(this.participants).includes(p)
-        )
-      ) {
-        for (const p of Object.values(newParticipants)) {
-          await this.addParticipant(p);
-        }
-
-        await this.gameMessage.edit(
-          this.gameMessage.content
-            .split("\n")
-            .slice(0, 5)
-            .join("\n") + this.listParticipants()
-        );
+      for (const u of collector.users.values()) {
+        // if a user was successfully added, update the message
+        if (await this.addParticipant(u))
+          await this.gameMessage.edit(
+            this.gameMessage.content
+              .split("\n")
+              .slice(0, 5)
+              .join("\n") + this.listParticipants()
+          );
       }
     }
     if (Object.keys(this.participants).length < 2)
