@@ -371,7 +371,6 @@ export class Quotes extends BotModule {
     await qs.save();
     return `Successfully set picture for ${name}`;
   }
-
   private async deletePicture(serverID: string, name: string) {
     const qs = await this.getQuoteStore(serverID);
     name = capitalize(name);

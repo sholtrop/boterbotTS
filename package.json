@@ -27,12 +27,11 @@
   "dependencies": {
     "@jimp/types": "^0.9.3",
     "@typeit/discord": "^1.0.3",
-    "@types/moment": "^2.13.0",
     "@types/mongoose": "^5.7.3",
     "@types/node": "^13.7.7",
     "@types/wav": "^1.0.0",
     "auto-bind": "^4.0.0",
-    "discord.js": "git+https://github.com/discordjs/discord.js.git#11.5-dev",
+    "discord.js": "^11.6.2",
     "dotenv": "^8.2.0",
     "jimp": "^0.9.3",
     "memory-streams": "^0.1.3",
