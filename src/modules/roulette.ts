@@ -14,10 +14,10 @@ class RouletteGame {
     "Sayonara #"
   ];
   private async shoot(victim: GuildMember) {
+    await victim.setVoiceChannel(null);
     await this.channel.send(
       randomChoice(this.deathMessages).replace("#", victim.displayName)
     );
-    await victim.setVoiceChannel(null);
   }
   public async addParticipant(
     participant: GuildMember | User
@@ -31,7 +31,7 @@ class RouletteGame {
     this.participants[participant.user.username] = participant;
     return true;
   }
-  public listParticipants() {
+  public listParticipants(): string {
     let msg = "";
     for (const p of Object.values(this.participants)) {
       msg += "\n" + p.displayName;
