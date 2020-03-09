@@ -1,5 +1,13 @@
 import { BotModule, ModuleHandler } from "../command";
-import { User, Client, RichEmbed } from "discord.js";
+import {
+  User,
+  Client,
+  RichEmbed,
+  GuildMember,
+  Guild,
+  Message,
+  MessageAttachment
+} from "discord.js";
 import {
   QuoteStore,
   QuoteStoreDoc,
@@ -7,7 +15,6 @@ import {
   UserQuoteDoc
 } from "../database/schema";
 import { capitalize, validateNumber } from "../utils";
-import * as moment from "moment";
 import { HandlerResponse } from "../types";
 import { isArray } from "util";
 
@@ -15,7 +22,7 @@ export class Quotes extends BotModule {
   protected handlers: { [index: string]: ModuleHandler } = {
     "": {
       action: ({ server, args }) => {
-        return this.displayQuote(server.id, ...args);
+        return this.displayQuote(server, ...args);
       },
       params: [
         { name: "name", optional: true },
@@ -53,7 +60,7 @@ export class Quotes extends BotModule {
     all: {
       action: async ({ server, args }) => {
         const name = args[0];
-        if (name) return await this.displayAllQuotes(server.id, name);
+        if (name) return await this.displayAllQuotes(server, name);
         return { message: await this.displayNames(server.id) };
       },
       params: [{ name: "user", optional: true }],
@@ -69,6 +76,56 @@ export class Quotes extends BotModule {
         { name: "number", optional: true }
       ],
       description: "Delete all of <name>'s quotes, or only the [number]th quote"
+    },
+    bindname: {
+      action: async ({ server, args }) => {
+        let member: GuildMember;
+        if (/^\d+$/.test(args[0].trim())) {
+          console.log("using id");
+          member = server.members.get(args[0]);
+        }
+        // Weren't able to fetch it, or wasnt a snowflake
+        if (member === undefined) {
+          console.log("using name");
+          member = server.members.find(
+            gmember => gmember.displayName === args[0]
+          );
+        }
+        if (!member)
+          throw {
+            messageToUser:
+              "Couldn't find that user. Make sure to use a DiscordID (only available in devmode) or their display name."
+          };
+        return { message: await this.bindUser(server.id, member, args[1]) };
+      },
+      params: [
+        { name: "name/id", optional: false },
+        { name: "quoteUser", optional: false }
+      ],
+      description: "Bind a Discord user to a !quote quoted person"
+    },
+    setpicture: {
+      action: async ({ server, args, attachments }) => {
+        if (attachments.size === 0)
+          return {
+            message: "Error: Attach a picture to the message to set it"
+          };
+        const msg = await this.setPicture(
+          server.id,
+          attachments.first(),
+          args[0]
+        );
+        return { message: msg };
+      },
+      description: "Set <name>'s picture to the attached image",
+      params: [{ name: "name", optional: false }]
+    },
+    deletepicture: {
+      action: async ({ server, args }) => {
+        return { message: await this.deletePicture(server.id, args[0]) };
+      },
+      description: "Delete <name>'s picture",
+      params: [{ name: "name", optional: false }]
     }
   };
   protected _name = "quote";
@@ -84,6 +141,8 @@ export class Quotes extends BotModule {
   private beautifyQuote(
     name: string,
     q: UserQuoteDoc | UserQuoteDoc[],
+    avatarURL?: string,
+    userPictureURL?: string,
     extraFields = { quoteeName: true, addedBy: true, date: true }
   ): RichEmbed {
     let { quote = null, createdAt = null, addedBy = null } = !isArray(q)
@@ -108,9 +167,11 @@ export class Quotes extends BotModule {
       ? {
           name,
           url: "",
-          icon_url: "https://discohook.org/assets/discord-avatar-red.png"
+          icon_url:
+            avatarURL || "https://discohook.org/assets/discord-avatar-red.png"
         }
       : null;
+    console.log(userPictureURL);
     return new RichEmbed({
       description: quote,
       color: 15746887,
@@ -118,7 +179,9 @@ export class Quotes extends BotModule {
       author,
       timestamp,
       thumbnail: {
-        url: "https://discohook.org/assets/discord-avatar-red.png"
+        url:
+          userPictureURL ||
+          "https://discohook.org/assets/discord-avatar-red.png"
       }
     });
   }
@@ -130,8 +193,7 @@ export class Quotes extends BotModule {
   ): Promise<string> {
     name = capitalize(name);
     const qs = await this.getQuoteStore(serverID, true);
-    if (!this.nameInQuoteHavers(qs, name))
-      return `${name} is not listed as a quoted person. Use \`!quote addname <name>\` to add them first`;
+    this.nameInQuoteHavers(qs, name);
     const newQuotes = qs.quotes.get(name);
     newQuotes.push(
       new UserQuote({
@@ -153,25 +215,21 @@ export class Quotes extends BotModule {
   }
   private async displayQuote(
     this: Quotes,
-    serverID: string,
+    server: Guild,
     name?: string,
     number?: string
   ): Promise<HandlerResponse> {
-    name = capitalize(name);
     let quoteChoice: UserQuoteDoc;
     let userQuotes: UserQuoteDoc[];
     let num: number = validateNumber(number);
-    const qs = await this.getQuoteStore(serverID);
+    const qs = await this.getQuoteStore(server.id);
 
     if (name) {
-      if (!this.nameInQuoteHavers(qs, name))
-        return {
-          message:
-            "This person is not registered yet. Add them with `!quote addname <name>`"
-        };
+      name = capitalize(name);
+      this.nameInQuoteHavers(qs, name);
       userQuotes = qs.quotes.get(name);
       console.log(qs);
-      if (userQuotes.length === 0)
+      if (!userQuotes || userQuotes.length === 0)
         return { message: "This user does not have any quotes yet" };
     } else {
       let allNames = Array.from(qs.quotes.keys());
@@ -192,27 +250,38 @@ export class Quotes extends BotModule {
     }
     if (quoteChoice.addedBy)
       quoteChoice.addedBy = await this.userIDtoName(quoteChoice.addedBy);
-    return { embed: this.beautifyQuote(name, quoteChoice) };
+
+    return {
+      embed: this.beautifyQuote(
+        name,
+        quoteChoice,
+        await this.getBoundUserAvatar(qs, name),
+        qs.userPictures.get(name)
+      )
+    };
   }
-  private async displayAllQuotes(serverID: string, name: string) {
+  private async displayAllQuotes(server: Guild, name: string) {
     name = capitalize(name);
     let msg: HandlerResponse = { message: `All quotes for ${name}:\n` };
-    const qs = await this.getQuoteStore(serverID);
+    const qs = await this.getQuoteStore(server.id);
     if (!qs) return { message: "This server does not have any quotes yet" };
-    if (!this.nameInQuoteHavers(qs, name))
-      return {
-        message:
-          "This person is not registered yet. Add them with `!quote addname <name>`"
-      };
+    this.nameInQuoteHavers(qs, name);
+
     if (qs.quotes.get(name).length === 0) {
       return { message: "This user does not have any quotes yet" };
     }
     let allQuotes = qs.quotes.get(name);
-    msg.embed = this.beautifyQuote(name, allQuotes, {
-      addedBy: false,
-      date: false,
-      quoteeName: true
-    });
+    msg.embed = this.beautifyQuote(
+      name,
+      allQuotes,
+      await this.getBoundUserAvatar(qs, name),
+      qs.userPictures.get(name),
+      {
+        addedBy: false,
+        date: false,
+        quoteeName: true
+      }
+    );
     return msg;
   }
   private async displayNames(serverID: string) {
@@ -233,8 +302,7 @@ export class Quotes extends BotModule {
     let msg: string;
     console.log(serverID, name, number);
     const qs = await this.getQuoteStore(serverID);
-    if (!this.nameInQuoteHavers(qs, name))
-      return "This person is not registered yet. Add them with `!quote addname <name>`";
+    this.nameInQuoteHavers(qs, name);
     if (num) {
       const currentQuotes = qs.quotes.get(name);
       if (currentQuotes.length < num)
@@ -252,16 +320,16 @@ export class Quotes extends BotModule {
   private async removeName(serverID: string, name: string) {
     name = capitalize(name);
     const qs = await this.getQuoteStore(serverID);
-    if (!this.nameInQuoteHavers(qs, name))
-      return `Can't delete that person, as ${name} is not in the list of quoted people`;
+    this.nameInQuoteHavers(qs, name);
     qs.quotes.delete(name);
     await qs.save();
     return `Successfully deleted ${name} from the list`;
   }
-  private nameInQuoteHavers(qs: QuoteStoreDoc, name: string): boolean {
-    console.log(qs.quotes);
-    if (qs.quotes) return qs.quotes.has(name);
-    return false;
+  private nameInQuoteHavers(qs: QuoteStoreDoc, name: string): void {
+    if (!qs.quotes || !qs.quotes.has(capitalize(name)))
+      throw {
+        messageToUser: `Error: ${name} is not in the list of quoted persons. Add them with \`!quote addname <name>\``
+      };
   }
   private async getQuoteStore(
     serverID: string,
@@ -274,5 +342,42 @@ export class Quotes extends BotModule {
     } else if (!qs)
       throw { messageToUser: "This server does not have any quotes yet" };
     return qs as QuoteStoreDoc;
+  }
+  private async bindUser(serverID: string, user: GuildMember, name: string) {
+    const qs = await this.getQuoteStore(serverID, true);
+    name = capitalize(name);
+    qs.userBindings.set(name, user.id);
+    await qs.save();
+    return `Set quoted person ${name} to be ${user.displayName}. Their Discord profile picture will now show up when a quote is displayed.`;
+  }
+  private async getBoundUserAvatar(
+    qs: QuoteStoreDoc,
+    name: string
+  ): Promise<string> {
+    const id = qs.userBindings.get(capitalize(name));
+    if (!id) return null;
+    return (await this.client.fetchUser(id)).displayAvatarURL;
+  }
+  private async setPicture(
+    serverID: string,
+    picture: MessageAttachment,
+    name: string
+  ) {
+    const qs = await this.getQuoteStore(serverID);
+    this.nameInQuoteHavers(qs, name);
+    const pictureURL = picture.proxyURL;
+    console.log("PictureURL:", pictureURL);
+    qs.userPictures.set(capitalize(name), pictureURL);
+    await qs.save();
+    return `Successfully set picture for ${name}`;
+  }
+
+  private async deletePicture(serverID: string, name: string) {
+    const qs = await this.getQuoteStore(serverID);
+    name = capitalize(name);
+    this.nameInQuoteHavers(qs, name);
+    qs.userPictures.set(name, undefined);
+    await qs.save();
+    return `Successfully deleted picture for ${name}`;
   }
 }

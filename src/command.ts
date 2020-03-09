@@ -1,5 +1,4 @@
 import { Client } from "discord.js";
-import { SoundPlayer } from "./soundPlayer";
 import {
   HandlerAction,
   HandlerParams,

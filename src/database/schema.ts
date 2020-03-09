@@ -22,6 +22,8 @@ const UserQuoteSchema = createSchema(
 
 const QuoteStoreSchema = new Schema({
   serverID: { type: String, required: true },
+  userBindings: { type: Map, of: String, default: {} },
+  userPictures: { type: Map, of: String, default: {} },
   quotes: {
     type: Map,
     of: Array,
@@ -38,6 +40,8 @@ export type UserQuoteProps = ExtractProps<typeof UserQuoteSchema>;
 // Must be created manually (not through ts-mongoose) because it doesn't support Maps
 export interface QuoteStoreDoc extends Document {
   serverID: string;
+  userBindings: Map<string, string>;
+  userPictures: Map<string, string>;
   quotes: Map<string, Array<UserQuoteDoc>>;
 }
 

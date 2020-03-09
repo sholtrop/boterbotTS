@@ -4,7 +4,11 @@ import {
   GroupDMChannel,
   Guild,
   User,
-  RichEmbed
+  RichEmbed,
+  Collection,
+  Message,
+  Snowflake,
+  MessageAttachment
 } from "discord.js";
 
 import { BotModule } from "./command";
@@ -23,6 +27,7 @@ export interface Command {
   server: Guild;
   user: User;
   messageChannel: AnyTextChannel;
+  attachments: Collection<Snowflake, MessageAttachment>;
 }
 
 export interface ExecuteError {

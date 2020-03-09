@@ -114,7 +114,8 @@ export class BoterBot {
         args: parsed.slice(2),
         server: null,
         user: null,
-        messageChannel: msg.channel
+        messageChannel: msg.channel,
+        attachments: msg.attachments
       };
     }
     // No such module
@@ -130,7 +131,8 @@ export class BoterBot {
         args: parsed.slice(2),
         server: null,
         user: null,
-        messageChannel: msg.channel
+        messageChannel: msg.channel,
+        attachments: msg.attachments
       };
     }
     if (cmd) {
