@@ -375,7 +375,7 @@ export class Quotes extends BotModule {
     const qs = await this.getQuoteStore(serverID);
     name = capitalize(name);
     this.nameInQuoteHavers(qs, name);
-    qs.userPictures.set(name, undefined);
+    qs.userPictures.delete(name);
     await qs.save();
     return `Successfully deleted picture for ${name}`;
   }
