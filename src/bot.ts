@@ -4,7 +4,7 @@ import {
   BotConfig,
   ExecuteError,
   Command,
-  HandlerResponse
+  HandlerResponse,
 } from "./types";
 import { BotModule } from "./command";
 import * as Discord from "discord.js";
@@ -19,7 +19,7 @@ export class BoterBot {
     [index: string]: (this: BoterBot) => HandlerResponse;
   } = {
     info: this.giveFullBotInfo,
-    help: this.giveFullBotInfo
+    help: this.giveFullBotInfo,
   };
   private readonly token: string;
   private readonly prefix: string;
@@ -64,8 +64,9 @@ export class BoterBot {
       const [target, cmd] = this.parseMessage(msg);
       if (cmd === null) {
         response = {
-          message: `I don't know what \`${this.prefix +
-            target}\` means. Try \`${this.prefix}help\` to see what I can do.`
+          message: `I don't know what \`${
+            this.prefix + target
+          }\` means. Try \`${this.prefix}help\` to see what I can do.`,
         };
       } else if (target === "self") {
         response = this.botMethods[cmd.method].call(this, cmd.args);
@@ -86,9 +87,7 @@ export class BoterBot {
     let parsed: string[] = [];
     let accum = "";
     let inQuote = false;
-    let message: string = Util.escapeMarkdown(msg.content)
-      .trim()
-      .substr(this.prefix.length);
+    let message: string = msg.content.trim().substr(this.prefix.length);
     for (const i of message) {
       if (i === " " && !inQuote) {
         parsed.push(accum);
@@ -100,7 +99,7 @@ export class BoterBot {
     if (inQuote)
       throw {
         messageToUser:
-          'Parsing error: You have an unclosed quote! Make sure every opening " has a closing " as well!'
+          'Parsing error: You have an unclosed quote! Make sure every opening " has a closing " as well!',
       };
     if (accum) parsed.push(accum);
 
@@ -115,7 +114,7 @@ export class BoterBot {
         server: null,
         user: null,
         messageChannel: msg.channel,
-        attachments: msg.attachments
+        attachments: msg.attachments,
       };
     }
     // No such module
@@ -132,7 +131,7 @@ export class BoterBot {
         server: null,
         user: null,
         messageChannel: msg.channel,
-        attachments: msg.attachments
+        attachments: msg.attachments,
       };
     }
     if (cmd) {
@@ -157,6 +156,6 @@ export class BoterBot {
     });
 
     this.client.on("message", (msg: Message) => this.onMessage(msg));
-    this.client.login(this.token).catch(e => console.error(e));
+    this.client.login(this.token).catch((e) => console.error(e));
   }
 }
