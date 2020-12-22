@@ -5,14 +5,13 @@ import {
   RichEmbed,
   GuildMember,
   Guild,
-  Message,
-  MessageAttachment
+  MessageAttachment,
 } from "discord.js";
 import {
   QuoteStore,
   QuoteStoreDoc,
   UserQuote,
-  UserQuoteDoc
+  UserQuoteDoc,
 } from "../database/schema";
 import { capitalize, validateNumber } from "../utils";
 import { HandlerResponse } from "../types";
@@ -26,36 +25,36 @@ export class Quotes extends BotModule {
       },
       params: [
         { name: "name", optional: true },
-        { name: "quote number", optional: true }
+        { name: "quote number", optional: true },
       ],
       description:
-        "Display a random quote, or display a random / the [number]th from [name]"
+        "Display a random quote, or display a random / the [number]th from [name]",
     },
     new: {
       action: async ({ user, server, args }) => {
         return {
-          message: await this.addQuote(user, server.id, args[0], args[1])
+          message: await this.addQuote(user, server.id, args[0], args[1]),
         };
       },
       params: [
         { name: "name", optional: false },
-        { name: "quote", optional: false }
+        { name: "quote", optional: false },
       ],
-      description: "Adds <quote> to <name> as a quote"
+      description: "Adds <quote> to <name> as a quote",
     },
     addname: {
       action: async ({ server, args }) => {
         return { message: await this.addName(server.id, args[0]) };
       },
       params: [{ name: "name", optional: false }],
-      description: "Adds <name> to the list of quote-havers"
+      description: "Adds <name> to the list of quote-havers",
     },
     removename: {
       action: async ({ server, args }) => {
         return { message: await this.removeName(server.id, args[0]) };
       },
       description: "Removes <name> from the list of quoted people",
-      params: [{ name: "name", optional: false }]
+      params: [{ name: "name", optional: false }],
     },
     all: {
       action: async ({ server, args }) => {
@@ -65,7 +64,7 @@ export class Quotes extends BotModule {
       },
       params: [{ name: "user", optional: true }],
       description:
-        "Display all users with quote count, or display all quotes of [user]"
+        "Display all users with quote count, or display all quotes of [user]",
     },
     delete: {
       action: async ({ server, args }) => {
@@ -73,9 +72,10 @@ export class Quotes extends BotModule {
       },
       params: [
         { name: "name", optional: false },
-        { name: "number", optional: true }
+        { name: "number", optional: true },
       ],
-      description: "Delete all of <name>'s quotes, or only the [number]th quote"
+      description:
+        "Delete all of <name>'s quotes, or only the [number]th quote",
     },
     bindname: {
       action: async ({ server, args }) => {
@@ -88,27 +88,27 @@ export class Quotes extends BotModule {
         if (member === undefined) {
           console.log("using name");
           member = server.members.find(
-            gmember => gmember.displayName === args[0]
+            (gmember) => gmember.displayName === args[0]
           );
         }
         if (!member)
           throw {
             messageToUser:
-              "Couldn't find that user. Make sure to use a DiscordID (only available in devmode) or their display name."
+              "Couldn't find that user. Make sure to use a DiscordID (only available in devmode) or their display name.",
           };
         return { message: await this.bindUser(server.id, member, args[1]) };
       },
       params: [
         { name: "name/id", optional: false },
-        { name: "quoteUser", optional: false }
+        { name: "quoteUser", optional: false },
       ],
-      description: "Bind a Discord user to a !quote quoted person"
+      description: "Bind a Discord user to a !quote quoted person",
     },
     setpicture: {
       action: async ({ server, args, attachments }) => {
         if (attachments.size === 0)
           return {
-            message: "Error: Attach a picture to the message to set it"
+            message: "Error: Attach a picture to the message to set it",
           };
         const msg = await this.setPicture(
           server.id,
@@ -118,15 +118,15 @@ export class Quotes extends BotModule {
         return { message: msg };
       },
       description: "Set <name>'s picture to the attached image",
-      params: [{ name: "name", optional: false }]
+      params: [{ name: "name", optional: false }],
     },
     deletepicture: {
       action: async ({ server, args }) => {
         return { message: await this.deletePicture(server.id, args[0]) };
       },
       description: "Delete <name>'s picture",
-      params: [{ name: "name", optional: false }]
-    }
+      params: [{ name: "name", optional: false }],
+    },
   };
   protected _name = "quote";
 
@@ -158,8 +158,8 @@ export class Quotes extends BotModule {
           {
             name: "Added by",
             value: addedBy,
-            inline: true
-          }
+            inline: true,
+          },
         ]
       : null;
     const timestamp = extraFields.date ? createdAt : null;
@@ -168,7 +168,7 @@ export class Quotes extends BotModule {
           name,
           url: "",
           icon_url:
-            avatarURL || "https://discohook.org/assets/discord-avatar-red.png"
+            avatarURL || "https://discohook.org/assets/discord-avatar-red.png",
         }
       : null;
     console.log(userPictureURL);
@@ -181,8 +181,8 @@ export class Quotes extends BotModule {
       thumbnail: {
         url:
           userPictureURL ||
-          "https://discohook.org/assets/discord-avatar-red.png"
-      }
+          "https://discohook.org/assets/discord-avatar-red.png",
+      },
     });
   }
   private async addQuote(
@@ -199,10 +199,9 @@ export class Quotes extends BotModule {
       new UserQuote({
         quote,
         addedBy: requester.id,
-        createdAt: new Date()
+        createdAt: new Date(),
       }) as UserQuoteDoc
     );
-    qs.quotes.set(name, newQuotes);
     await qs.save();
     return `Successfully added quote for ${name}`;
   }
@@ -223,12 +222,11 @@ export class Quotes extends BotModule {
     let userQuotes: UserQuoteDoc[];
     let num: number = validateNumber(number);
     const qs = await this.getQuoteStore(server.id);
-
+    console.log("Quotestore:", qs);
     if (name) {
       name = capitalize(name);
       this.nameInQuoteHavers(qs, name);
       userQuotes = qs.quotes.get(name);
-      console.log(qs);
       if (!userQuotes || userQuotes.length === 0)
         return { message: "This user does not have any quotes yet" };
     } else {
@@ -257,7 +255,7 @@ export class Quotes extends BotModule {
         quoteChoice,
         await this.getBoundUserAvatar(qs, name),
         qs.userPictures.get(name)
-      )
+      ),
     };
   }
   private async displayAllQuotes(server: Guild, name: string) {
@@ -279,7 +277,7 @@ export class Quotes extends BotModule {
       {
         addedBy: false,
         date: false,
-        quoteeName: true
+        quoteeName: true,
       }
     );
     return msg;
@@ -328,7 +326,7 @@ export class Quotes extends BotModule {
   private nameInQuoteHavers(qs: QuoteStoreDoc, name: string): void {
     if (!qs.quotes || !qs.quotes.has(capitalize(name)))
       throw {
-        messageToUser: `Error: ${name} is not in the list of quoted persons. Add them with \`!quote addname <name>\``
+        messageToUser: `Error: ${name} is not in the list of quoted persons. Add them with \`!quote addname <name>\``,
       };
   }
   private async getQuoteStore(

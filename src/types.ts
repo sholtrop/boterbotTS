@@ -8,7 +8,7 @@ import {
   Collection,
   Message,
   Snowflake,
-  MessageAttachment
+  MessageAttachment,
 } from "discord.js";
 
 import { BotModule } from "./command";
@@ -34,7 +34,6 @@ export interface ExecuteError {
   messageToUser: string;
 }
 
-// [nameOfArg, optional?]
 export type HandlerParams = { name: string; optional: boolean }[];
 
 export type HandlerResponse = {
